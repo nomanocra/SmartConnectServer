@@ -7,8 +7,8 @@
 |
 */
 
-import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
+import router from '@adonisjs/core/services/router'
 
 router.get('/', async () => {
   return {
@@ -27,4 +27,9 @@ router.get('/auth/me', '#controllers/auth_controller.me').use(middleware.auth({ 
 router.post('/users', '#controllers/users_controller.store')
 router
   .put('/users/update', '#controllers/users_controller.update')
+  .use(middleware.auth({ guards: ['api'] }))
+
+// Device routes
+router
+  .get('/devices/:id', '#controllers/smart_devices_controller.show')
   .use(middleware.auth({ guards: ['api'] }))

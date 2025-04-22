@@ -6,13 +6,16 @@ export default class AuthController {
     const { email, password } = request.only(['email', 'password'])
 
     try {
-      // Vérifier les identifiants et créer un token
       const user = await User.verifyCredentials(email, password)
       const token = await auth.use('api').createToken(user)
 
+      if (!token.value) {
+        throw new Error('Token creation failed')
+      }
+
       return response.ok({
         type: 'bearer',
-        token: token.value!.release(),
+        token: token.value.release(),
         user: {
           id: user.id,
           email: user.email,
@@ -22,7 +25,7 @@ export default class AuthController {
       })
     } catch (error) {
       return response.unauthorized({
-        message: 'Invalid credentials',
+        message: 'Invalid credentials or authentication error',
       })
     }
   }
