@@ -21,8 +21,8 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
    - Handles user registration, login, and token management
    - Implements secure authentication flows with JWT tokens
 
-2. **SmartBoitier Management / Gestion des SmartBoitiers**
-   - Each SmartBoitier represents an IoT device hub
+2. **SmartDevice Management / Gestion des SmartDevice**
+   - Each SmartDevice represents an IoT device hub
    - Contains multiple sensors
    - Manages device configuration and status
    - Handles real-time data collection from sensors
@@ -39,20 +39,20 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
      * Regions/Cities (e.g., Paris, Toulouse)
      * Buildings/Areas (e.g., Hangars)
      * Device Groups (Floor, Entry, Room1)
-     * Individual SmartBoitiers
+     * Individual SmartDevices
 
 ## Database Structure / Structure de la base de données
 - Uses PostgreSQL with Lucid ORM
 - Implements relationships between:
   * Users
-  * SmartBoitiers
+  * SmartDevices
   * Sensors
   * Sensor Data Records
 
 ## API Endpoints / Points d'accès API
 The server provides RESTful APIs for:
 1. User authentication and management
-2. SmartBoitier CRUD operations
+2. SmartDevice CRUD operations
 3. Sensor data retrieval and storage
 4. Location hierarchy management
 
