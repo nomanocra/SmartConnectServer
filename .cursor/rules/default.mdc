@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project: SmartConnectServer
+## Overview / Vue d'ensemble
+This project serves as the backend for SmartConnectApp, an IoT data management dashboard application. The server handles device management, sensor data collection, and hierarchical organization of IoT devices.
+
+Ce projet sert de backend pour SmartConnectApp, une application de tableau de bord de gestion IoT. Le serveur gère les appareils, la collecte de données des capteurs et l'organisation hiérarchique des appareils IoT.
+
+## Technical Stack / Stack Technique
+- Framework: AdonisJS v6
+- Database: PostgreSQL
+- ORM: Lucid
+- Authentication: Access Tokens Guard
+
+## Core Features / Fonctionnalités principales
+1. **Authentication / Authentification**
+   - Uses Access Tokens Guard
+   - Handles user registration, login, and token management
+   - Implements secure authentication flows with JWT tokens
+
+2. **SmartBoitier Management / Gestion des SmartBoitiers**
+   - Each SmartBoitier represents an IoT device hub
+   - Contains multiple sensors
+   - Manages device configuration and status
+   - Handles real-time data collection from sensors
+
+3. **Sensor Data / Données des capteurs**
+   - Historical data storage and retrieval
+   - Time-series data management
+   - Data validation and processing
+   - Supports multiple sensor types
+
+4. **Hierarchical Structure / Structure hiérarchique**
+   - Flexible location-based organization
+   - Supports multiple organizational levels. This organization is flexible, and here is jsut an example:
+     * Regions/Cities (e.g., Paris, Toulouse)
+     * Buildings/Areas (e.g., Hangars)
+     * Device Groups (Floor, Entry, Room1)
+     * Individual SmartBoitiers
+
+## Database Structure / Structure de la base de données
+- Uses PostgreSQL with Lucid ORM
+- Implements relationships between:
+  * Users
+  * SmartBoitiers
+  * Sensors
+  * Sensor Data Records
+
+## API Endpoints / Points d'accès API
+The server provides RESTful APIs for:
+1. User authentication and management
+2. SmartBoitier CRUD operations
+3. Sensor data retrieval and storage
+4. Location hierarchy management
+
+## Development Guidelines / Directives de développement
+- Follow AdonisJS best practices and conventions
+- Use Lucid models for database operations
+- Implement proper error handling and validation
+- Maintain secure authentication practices
+- Document all API endpoints
+
+## External Resources / Ressources externes
+- AdonisJS Documentation: https://docs.adonisjs.com/guides/preface/introduction
+- Lucid Documentation: https://lucid.adonisjs.com/docs/introduction
+- Frontend Repository: https://github.com/nomanocra/SmartconnectApp
+
+## Security Considerations / Considérations de sécurité
+- Implement proper input validation
+- Use secure session management
+- Follow authentication best practices
+- Protect sensitive device and sensor data
+- Implement proper access control mechanisms
