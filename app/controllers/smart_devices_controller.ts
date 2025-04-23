@@ -1,64 +1,26 @@
 import { HttpContext } from '@adonisjs/core/http'
-import SmartDevice from '#models/smart_device'
+import SmartDevice from '../models/smart_device.js'
 
-export default class SmartDevicesController {
-  /**
-   * Display a list of all smart devices
-   */
-  async index({ response }: HttpContext) {
-    const devices = await SmartDevice.query().preload('sensors')
-    return response.json(devices)
-  }
+export default class DeviceController {
+  async index({ auth, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+      const devices = await SmartDevice.query()
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .preload('sensors')
 
-  /**
-   * Display a single smart device with its sensors
-   */
-  async show({ params, response }: HttpContext) {
-    const device = await SmartDevice.query().where('id', params.id).preload('sensors').firstOrFail()
-
-    return response.json({
-      id: device.id,
-      deviceId: device.deviceId,
-      isConnected: device.isConnected,
-      sensors: device.sensors.map((sensor) => ({
-        id: sensor.id,
-        name: sensor.name,
-        nom: sensor.nom,
-        type: sensor.type,
-        value: sensor.value,
-        unit: sensor.unit,
-        isAlert: sensor.isAlert,
-        lastUpdate: sensor.lastUpdate,
-      })),
-    })
-  }
-
-  /**
-   * Create a new smart device
-   */
-  async store({ request, response }: HttpContext) {
-    const data = request.only(['deviceId', 'isConnected'])
-    const device = await SmartDevice.create(data)
-    return response.created(device)
-  }
-
-  /**
-   * Update a smart device
-   */
-  async update({ params, request, response }: HttpContext) {
-    const device = await SmartDevice.findOrFail(params.id)
-    const data = request.only(['deviceId', 'isConnected'])
-    device.merge(data)
-    await device.save()
-    return response.json(device)
-  }
-
-  /**
-   * Delete a smart device
-   */
-  async destroy({ params, response }: HttpContext) {
-    const device = await SmartDevice.findOrFail(params.id)
-    await device.delete()
-    return response.noContent()
+      return response.json({
+        status: 'success',
+        data: devices,
+      })
+    } catch (error) {
+      console.error(error)
+      return response.status(500).json({
+        status: 'error',
+        message: 'Une erreur est survenue lors de la récupération des devices',
+      })
+    }
   }
 }

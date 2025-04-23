@@ -37,7 +37,7 @@ export default class Sensor extends BaseModel {
   @belongsTo(() => SmartDevice)
   declare smartDevice: BelongsTo<typeof SmartDevice>
 
-  @column.dateTime({ autoCreate: true })
+  @column.dateTime({ autoCreate: true, autoUpdate: false })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
