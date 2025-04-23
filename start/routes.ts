@@ -31,5 +31,9 @@ router
 
 // Device routes
 router
-  .get('/devices/:id', '#controllers/smart_devices_controller.show')
+  .get('/devices/:id', '#controllers/smart_device_controller.show')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .get('/devices', '#controllers/smart_devices_controller.index')
   .use(middleware.auth({ guards: ['api'] }))
