@@ -15,6 +15,16 @@ export default class CreateDemoUserSeeder extends BaseSeeder {
       organisationName: 'SmartConnect IoT',
     })
 
+    await User.query().where('email', 'test@test.com').delete()
+
+    // Créer un nouvel utilisateur
+    await User.create({
+      email: 'test@test.com',
+      password: 'test',
+      fullName: 'Demo Test',
+      role: 'user',
+    })
+
     console.log('Demo user created successfully')
   }
 }
