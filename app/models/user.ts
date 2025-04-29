@@ -39,8 +39,10 @@ export default class User extends compose(BaseModel, AuthFinder) {
   })
   declare devices: ManyToMany<typeof SmartDevice>
 
-  @hasOne(() => UserDeviceMapping)
-  declare deviceMapping: HasOne<typeof UserDeviceMapping> | null
+  @hasOne(() => UserDeviceMapping, {
+    foreignKey: 'userId',
+  })
+  declare deviceMapping: HasOne<typeof UserDeviceMapping>
 
   @column.dateTime({ autoCreate: true, autoUpdate: false })
   declare createdAt: DateTime

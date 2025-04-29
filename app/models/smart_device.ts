@@ -9,7 +9,7 @@ export default class SmartDevice extends BaseModel {
   declare id: number
 
   @column()
-  declare deviceId: string
+  declare deviceSerial: string
 
   @column()
   declare isConnected: boolean

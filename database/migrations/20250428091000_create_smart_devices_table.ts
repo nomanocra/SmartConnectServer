@@ -6,8 +6,8 @@ export default class extends BaseSchema {
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary()
-      table.string('device_id').unique().notNullable()
-      table.boolean('is_connected').defaultTo(false)
+      table.string('device_serial').notNullable().unique()
+      table.boolean('is_connected').notNullable().defaultTo(false)
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
     })

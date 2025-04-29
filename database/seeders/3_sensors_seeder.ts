@@ -20,30 +20,25 @@ interface SensorsData {
 
 export default class extends BaseSeeder {
   async run() {
-    // Get all devices to link sensors with retry
-    let devices = await SmartDevice.all()
-    let retries = 0
-    const maxRetries = 3
+    // Récupérer tous les devices
+    const devices = await SmartDevice.all()
 
-    while (devices.length === 0 && retries < maxRetries) {
-      console.log('No devices found, waiting 1 second...')
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      devices = await SmartDevice.all()
-      retries++
-    }
-
+    // Vérifier si des devices existent
     if (devices.length === 0) {
-      console.log('No devices found after retries, skipping sensors creation')
+      console.log('No devices found to attach sensors to')
       return
     }
 
+    // Afficher les devices trouvés pour le debug
     console.log(
       'Found devices:',
-      devices.map((d) => d.deviceId)
+      devices.map((d) => d.deviceSerial)
     )
-    const deviceMap = new Map(devices.map((device) => [device.deviceId, device]))
-    console.log('Device map keys:', Array.from(deviceMap.keys()))
 
+    // Créer une map des devices pour un accès facile
+    const deviceMap = new Map(devices.map((device) => [device.deviceSerial, device]))
+
+    // Données des capteurs pour chaque device
     const sensorsData: SensorsData = {
       fct_1a2b3c4d: [
         {
@@ -447,19 +442,22 @@ export default class extends BaseSeeder {
       ],
     }
 
-    // Create sensors for each device
-    for (const [deviceId, sensors] of Object.entries(sensorsData)) {
-      const device = deviceMap.get(deviceId)
-      if (device) {
-        await Promise.all(
-          sensors.map((sensor) =>
-            Sensor.create({
-              ...sensor,
-              smartDeviceId: device.id.toString(),
-            })
-          )
+    // Afficher les clés de la map pour le debug
+    console.log('Device map keys:', Array.from(deviceMap.keys()))
+
+    // Créer les capteurs pour chaque device
+    for (const [deviceSerial, sensors] of Object.entries(sensorsData)) {
+      const device = deviceMap.get(deviceSerial)
+      if (!device) continue
+
+      await Promise.all(
+        sensors.map((sensorData) =>
+          Sensor.create({
+            smartDeviceId: device.id.toString(),
+            ...sensorData,
+          })
         )
-      }
+      )
     }
   }
 }

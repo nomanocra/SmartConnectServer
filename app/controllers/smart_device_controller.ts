@@ -14,30 +14,25 @@ export default class SmartDevicesController {
    * Display a single smart device with its sensors
    */
   async show({ params, response }: HttpContext) {
-    const device = await SmartDevice.query().where('id', params.id).preload('sensors').firstOrFail()
-
-    return response.json({
-      id: device.id,
-      deviceId: device.deviceId,
-      isConnected: device.isConnected,
-      sensors: device.sensors.map((sensor) => ({
-        id: sensor.id,
-        name: sensor.name,
-        nom: sensor.nom,
-        type: sensor.type,
-        value: sensor.value,
-        unit: sensor.unit,
-        isAlert: sensor.isAlert,
-        lastUpdate: sensor.lastUpdate,
-      })),
-    })
+    try {
+      const device = await SmartDevice.findOrFail(params.id)
+      return response.ok({
+        id: device.id,
+        deviceSerial: device.deviceSerial,
+        isConnected: device.isConnected,
+      })
+    } catch (error) {
+      return response.notFound({
+        message: 'Device not found',
+      })
+    }
   }
 
   /**
    * Create a new smart device
    */
   async store({ request, response }: HttpContext) {
-    const data = request.only(['deviceId', 'isConnected'])
+    const data = request.only(['deviceSerial', 'isConnected'])
     const device = await SmartDevice.create(data)
     return response.created(device)
   }
@@ -46,11 +41,26 @@ export default class SmartDevicesController {
    * Update a smart device
    */
   async update({ params, request, response }: HttpContext) {
-    const device = await SmartDevice.findOrFail(params.id)
-    const data = request.only(['deviceId', 'isConnected'])
-    device.merge(data)
-    await device.save()
-    return response.json(device)
+    try {
+      const device = await SmartDevice.findOrFail(params.id)
+      const data = request.only(['deviceSerial', 'isConnected'])
+      device.merge(data)
+      await device.save()
+
+      return response.ok({
+        message: 'Device updated successfully',
+        device: {
+          id: device.id,
+          deviceSerial: device.deviceSerial,
+          isConnected: device.isConnected,
+        },
+      })
+    } catch (error) {
+      return response.badRequest({
+        message: 'Error updating device',
+        error: error.message,
+      })
+    }
   }
 
   /**
