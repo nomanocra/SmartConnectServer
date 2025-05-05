@@ -1,5 +1,4 @@
 import { HttpContext } from '@adonisjs/core/http'
-import User from '#models/user'
 
 export default class DeviceMappingController {
   async getDeviceMapping({ response, auth }: HttpContext) {
