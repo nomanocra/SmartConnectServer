@@ -1,6 +1,8 @@
 {
-  "name": "SmartConnectIoTServer",
-  "version": "0.0.0",
+  "name": "SmartServer",
+  "version": "0.0.2",
+  "updated": "05/05/2025",
+  "description": "SmartConnect Server API used for SmartBoard",
   "private": true,
   "type": "module",
   "license": "UNLICENSED",

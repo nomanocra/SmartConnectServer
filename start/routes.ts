@@ -10,11 +10,7 @@
 import { middleware } from './kernel.js'
 import router from '@adonisjs/core/services/router'
 
-router.get('/', async () => {
-  return {
-    hello: 'Welcome to SmartConnectServer API - Last updated: 05/05/2025',
-  }
-})
+router.get('/', '#controllers/root_controller.index')
 
 // Auth routes
 router.post('/auth/login', '#controllers/auth_controller.login')
