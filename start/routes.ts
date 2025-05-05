@@ -12,7 +12,7 @@ import router from '@adonisjs/core/services/router'
 
 router.get('/', async () => {
   return {
-    hello: 'Welcome to SmartConnectServer API',
+    hello: 'Welcome to SmartConnectServer API - Last updated: 05/05/2025',
   }
 })
 
