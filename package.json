@@ -1,7 +1,7 @@
 {
   "name": "SmartServer",
-  "version": "0.0.3",
-  "updated": "05/05/2025 - 18:00",
+  "version": "0.0.4",
+  "updated": "06/05/2025 - 11:50",
   "description": "SmartConnect Server API used for SmartBoard",
   "private": true,
   "type": "module",
