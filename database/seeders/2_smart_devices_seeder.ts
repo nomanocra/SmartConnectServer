@@ -8,6 +8,9 @@ interface DeviceData {
 
 export default class extends BaseSeeder {
   async run() {
+    // Clear existing devices
+    await SmartDevice.query().delete()
+
     const devices: DeviceData[] = [
       {
         deviceSerial: 'fct_1a2b3c4d',

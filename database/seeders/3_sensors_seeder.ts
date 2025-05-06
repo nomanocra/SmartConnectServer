@@ -20,6 +20,9 @@ interface SensorsData {
 
 export default class extends BaseSeeder {
   async run() {
+    // Clear existing sensors
+    await Sensor.query().delete()
+
     // Récupérer tous les devices
     const devices = await SmartDevice.all()
 
