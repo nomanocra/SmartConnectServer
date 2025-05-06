@@ -15,11 +15,18 @@ export default class SmartDevicesController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const device = await SmartDevice.findOrFail(params.id)
+      const device = await SmartDevice.query()
+        .where('id', params.id)
+        .preload('sensors')
+        .firstOrFail()
+
       return response.ok({
         id: device.id,
         deviceSerial: device.deviceSerial,
         isConnected: device.isConnected,
+        sensors: device.sensors,
+        createdAt: device.createdAt,
+        updatedAt: device.updatedAt,
       })
     } catch (error) {
       return response.notFound({
