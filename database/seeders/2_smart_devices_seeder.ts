@@ -42,11 +42,7 @@ export default class extends BaseSeeder {
         isConnected: true,
       },
       {
-        deviceSerial: 'bld_lab123',
-        isConnected: true,
-      },
-      {
-        deviceSerial: 'bld_white123',
+        deviceSerial: 'bld_dock789',
         isConnected: true,
       },
     ]

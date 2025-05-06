@@ -11,64 +11,87 @@ export default class extends BaseSeeder {
     // Mapping pour l'utilisateur demo (mapping complet)
     const demoMapping = JSON.stringify([
       {
-        id: 'cty_7f8e9d0c',
         name: 'Toulouse',
         children: [
           {
-            id: 'ste_aero123',
             name: 'Site Aero',
             children: [
               {
-                id: 'fct_1a2b3c4d',
+                deviceSerial: 'fct_1a2b3c4d',
                 name: 'Hangar A',
-                deviceSerial: 'ZFR52036JI',
               },
               {
-                id: 'fct_5e6f7g8h',
+                deviceSerial: 'fct_5e6f7g8h',
                 name: 'Hangar B',
-                deviceSerial: 'ZFR52037JI',
               },
               {
-                id: 'fct_9i8h7g6f',
+                deviceSerial: 'fct_9i8h7g6f',
                 name: 'Hangar C',
-                deviceSerial: 'ZFR52042JI',
               },
             ],
           },
           {
-            id: 'ste_log789',
             name: 'Centre Logistique',
             children: [
               {
-                id: 'bld_9a8b7c6',
+                deviceSerial: 'bld_9a8b7c6',
                 name: 'Entrepôt Principal',
-                deviceSerial: 'ZFR52038JI',
               },
             ],
           },
         ],
       },
-    ])
-
-    // Mapping pour l'utilisateur test (mapping simplifié)
-    const testMapping = JSON.stringify([
       {
-        id: 'cty_9i8h7g6f',
         name: 'Bordeaux',
         children: [
           {
-            id: 'ste_port123',
             name: 'Zone Portuaire',
             children: [
               {
-                id: 'bld_5e4d3c2b',
+                deviceSerial: 'bld_5e4d3c2b',
                 name: 'Terminal 1',
-                deviceSerial: 'ZFR52034JI',
               },
               {
-                id: 'bld_1a2b3c4d',
+                deviceSerial: 'bld_1a2b3c4d',
                 name: 'Terminal 2',
-                deviceSerial: 'ZFR52035JI',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Marseille',
+        children: [
+          {
+            deviceSerial: 'bld_dock123',
+            name: 'Dock A',
+          },
+          {
+            deviceSerial: 'bld_dock456',
+            name: 'Dock B',
+          },
+          {
+            deviceSerial: 'bld_dock789',
+            name: 'Dock C',
+          },
+        ],
+      },
+    ])
+    // Mapping pour l'utilisateur test (mapping simplifié)
+    const testMapping = JSON.stringify([
+      {
+        name: 'Bordeaux',
+        children: [
+          {
+            name: 'Zone Portuaire',
+            children: [
+              {
+                deviceSerial: 'bld_5e4d3c2b',
+                name: 'Terminal 1',
+              },
+              {
+                deviceSerial: 'bld_1a2b3c4d',
+                name: 'Terminal 2',
               },
             ],
           },
