@@ -1,12 +1,11 @@
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column, manyToMany, hasOne } from '@adonisjs/lucid/orm'
+import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
-import type { ManyToMany, HasOne } from '@adonisjs/lucid/types/relations'
+import type { ManyToMany } from '@adonisjs/lucid/types/relations'
 import SmartDevice from './smart_device.js'
-import UserDeviceMapping from './user_device_mapping.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -38,11 +37,6 @@ export default class User extends compose(BaseModel, AuthFinder) {
     pivotRelatedForeignKey: 'smart_device_id',
   })
   declare devices: ManyToMany<typeof SmartDevice>
-
-  @hasOne(() => UserDeviceMapping, {
-    foreignKey: 'userId',
-  })
-  declare deviceMapping: HasOne<typeof UserDeviceMapping>
 
   @column.dateTime({ autoCreate: true, autoUpdate: false })
   declare createdAt: DateTime

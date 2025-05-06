@@ -13,10 +13,15 @@ export default class SmartDevicesController {
   /**
    * Display a single smart device with its sensors
    */
-  async show({ params, response }: HttpContext) {
+  async show({ params, response, auth }: HttpContext) {
     try {
+      const user = await auth.use('api').getUserOrFail()
+
       const device = await SmartDevice.query()
         .where('id', params.id)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
         .preload('sensors')
         .firstOrFail()
 
@@ -30,7 +35,7 @@ export default class SmartDevicesController {
       })
     } catch (error) {
       return response.notFound({
-        message: 'Device not found',
+        message: 'Device not found or access denied',
       })
     }
   }

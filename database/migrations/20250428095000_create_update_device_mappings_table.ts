@@ -4,19 +4,16 @@ export default class extends BaseSchema {
   protected tableName = 'device_mappings'
 
   async up() {
+    // Supprimer l'ancienne table si elle existe
+    await this.schema.dropTableIfExists(this.tableName)
+
+    // Créer la nouvelle table
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table
-        .integer('user_id')
-        .unsigned()
-        .references('id')
-        .inTable('users')
-        .onDelete('CASCADE')
-        .notNullable()
+      table.string('organisation_name').notNullable()
       table.text('mapping').notNullable()
       table.timestamp('created_at')
       table.timestamp('updated_at')
-      table.unique(['user_id'])
     })
   }
 

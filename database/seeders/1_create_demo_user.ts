@@ -23,6 +23,7 @@ export default class CreateDemoUserSeeder extends BaseSeeder {
       password: 'test',
       fullName: 'Demo Test',
       role: 'user',
+      organisationName: 'SmartConnect IoT',
     })
 
     console.log('Demo user created successfully')

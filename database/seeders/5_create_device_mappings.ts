@@ -4,12 +4,12 @@ import UserDeviceMapping from '#models/user_device_mapping'
 
 export default class extends BaseSeeder {
   async run() {
-    // Récupérer les utilisateurs
+    // Récupérer les utilisateurs pour obtenir leurs organisations
     const demoUser = await User.findByOrFail('email', 'demo@smartconnectiot.com')
     const testUser = await User.findByOrFail('email', 'test@test.com')
 
-    // Mapping pour l'utilisateur demo (mapping complet)
-    const demoMapping = JSON.stringify([
+    // Mapping pour l'organisation SmartConnect (mapping complet)
+    const smartConnectMapping = JSON.stringify([
       {
         name: 'Toulouse',
         children: [
@@ -77,32 +77,34 @@ export default class extends BaseSeeder {
         ],
       },
     ])
-    // Mapping pour l'utilisateur test (mapping simplifié)
+
+    // Mapping pour l'organisation Test (uniquement les devices auxquels l'utilisateur test a accès)
     const testMapping = JSON.stringify([
       {
-        name: 'Bordeaux',
+        name: 'Marseille',
         children: [
           {
-            name: 'Zone Portuaire',
-            children: [
-              {
-                deviceSerial: 'bld_5e4d3c2b',
-                name: 'Terminal 1',
-              },
-              {
-                deviceSerial: 'bld_1a2b3c4d',
-                name: 'Terminal 2',
-              },
-            ],
+            deviceSerial: 'bld_dock123',
+            name: 'Dock A',
+          },
+          {
+            deviceSerial: 'bld_dock789',
+            name: 'Dock C',
           },
         ],
       },
     ])
 
-    // Créer ou mettre à jour les mappings
-    await UserDeviceMapping.updateOrCreate({ userId: demoUser.id }, { mapping: demoMapping })
+    // Créer ou mettre à jour les mappings pour chaque organisation
+    await UserDeviceMapping.updateOrCreate(
+      { organisationName: demoUser.organisationName },
+      { mapping: smartConnectMapping }
+    )
 
-    await UserDeviceMapping.updateOrCreate({ userId: testUser.id }, { mapping: testMapping })
+    await UserDeviceMapping.updateOrCreate(
+      { organisationName: testUser.organisationName },
+      { mapping: testMapping }
+    )
 
     console.log('Device mappings created successfully')
   }
