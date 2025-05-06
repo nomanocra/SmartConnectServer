@@ -7,7 +7,7 @@ interface TreeNode {
   children?: TreeNode[]
   deviceSerial?: string
   isConnected?: boolean
-  updatedAt?: string
+  updatedAt?: string | null
   sensors?: any[]
 }
 
@@ -65,7 +65,7 @@ export default class DeviceMappingController {
           return {
             ...node,
             isConnected: device.isConnected,
-            updatedAt: device.updatedAt.toISO(),
+            updatedAt: device.updatedAt?.toISO() || undefined,
             sensors: device.sensors.map((sensor) => ({
               id: sensor.sensor_id,
               name: sensor.name,
@@ -127,7 +127,7 @@ export default class DeviceMappingController {
             return {
               deviceSerial: serial,
               isConnected: device?.isConnected,
-              updatedAt: device?.updatedAt.toISO(),
+              updatedAt: device?.updatedAt?.toISO() || undefined,
               sensors: device?.sensors.map((sensor) => ({
                 id: sensor.sensor_id,
                 name: sensor.name,
@@ -173,7 +173,7 @@ export default class DeviceMappingController {
           return {
             deviceSerial: serial,
             isConnected: device?.isConnected,
-            updatedAt: device?.updatedAt.toISO(),
+            updatedAt: device?.updatedAt?.toISO() || undefined,
             sensors: device?.sensors.map((sensor) => ({
               id: sensor.sensor_id,
               name: sensor.name,

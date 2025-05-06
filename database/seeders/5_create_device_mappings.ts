@@ -8,6 +8,11 @@ export default class extends BaseSeeder {
     const demoUser = await User.findByOrFail('email', 'demo@smartconnectiot.com')
     const testUser = await User.findByOrFail('email', 'test@test.com')
 
+    if (!demoUser.organisationName || !testUser.organisationName) {
+      console.log('Users must have an organisation name')
+      return
+    }
+
     // Mapping pour l'organisation SmartConnect (mapping complet)
     const smartConnectMapping = JSON.stringify([
       {
@@ -95,16 +100,17 @@ export default class extends BaseSeeder {
       },
     ])
 
-    // Créer ou mettre à jour les mappings pour chaque organisation
-    await UserDeviceMapping.updateOrCreate(
-      { organisationName: demoUser.organisationName },
-      { mapping: smartConnectMapping }
-    )
-
-    await UserDeviceMapping.updateOrCreate(
-      { organisationName: testUser.organisationName },
-      { mapping: testMapping }
-    )
+    // Créer les mappings
+    await UserDeviceMapping.createMany([
+      {
+        organisationName: demoUser.organisationName,
+        mapping: smartConnectMapping,
+      },
+      {
+        organisationName: testUser.organisationName,
+        mapping: testMapping,
+      },
+    ])
 
     console.log('Device mappings created successfully')
   }
