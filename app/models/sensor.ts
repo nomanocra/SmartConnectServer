@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import SmartDevice from './smart_device.js'
+import SensorHistory from './sensor_history.js'
 
 export default class Sensor extends BaseModel {
   @column({ isPrimary: true })
@@ -36,6 +37,9 @@ export default class Sensor extends BaseModel {
 
   @belongsTo(() => SmartDevice)
   declare smartDevice: BelongsTo<typeof SmartDevice>
+
+  @hasMany(() => SensorHistory)
+  declare history: HasMany<typeof SensorHistory>
 
   @column.dateTime({ autoCreate: true, autoUpdate: false })
   declare createdAt: DateTime

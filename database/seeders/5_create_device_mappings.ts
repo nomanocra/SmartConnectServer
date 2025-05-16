@@ -83,32 +83,11 @@ export default class extends BaseSeeder {
       },
     ])
 
-    // Mapping pour l'organisation Test (uniquement les devices auxquels l'utilisateur test a accès)
-    const testMapping = JSON.stringify([
-      {
-        name: 'Marseille',
-        children: [
-          {
-            deviceSerial: 'bld_dock123',
-            name: 'Dock A',
-          },
-          {
-            deviceSerial: 'bld_dock789',
-            name: 'Dock C',
-          },
-        ],
-      },
-    ])
-
     // Créer les mappings
     await UserDeviceMapping.createMany([
       {
         organisationName: demoUser.organisationName,
         mapping: smartConnectMapping,
-      },
-      {
-        organisationName: testUser.organisationName,
-        mapping: testMapping,
       },
     ])
 

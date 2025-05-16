@@ -111,7 +111,7 @@ export default class DeviceMappingController {
         .whereHas('users', (query) => {
           query.where('users.id', user.id)
         })
-        .select('device_serial')
+        .select('device_serial', 'name')
 
       const userDeviceSerials = new Set(userDevices.map((d) => d.deviceSerial))
 
@@ -126,6 +126,7 @@ export default class DeviceMappingController {
 
             return {
               deviceSerial: serial,
+              name: device?.name || serial,
               isConnected: device?.isConnected,
               updatedAt: device?.updatedAt?.toISO() || undefined,
               sensors: device?.sensors.map((sensor) => ({
@@ -142,9 +143,7 @@ export default class DeviceMappingController {
           })
         )
 
-        return response.ok({
-          deviceMapping: rootDevices.length > 0 ? rootDevices : null,
-        })
+        return response.ok(rootDevices.length > 0 ? rootDevices : [])
       }
 
       // Parser le mapping JSON
@@ -172,6 +171,7 @@ export default class DeviceMappingController {
 
           return {
             deviceSerial: serial,
+            name: device?.name || serial,
             isConnected: device?.isConnected,
             updatedAt: device?.updatedAt?.toISO() || undefined,
             sensors: device?.sensors.map((sensor) => ({
@@ -190,9 +190,7 @@ export default class DeviceMappingController {
 
       const finalTree = [...enrichedTree, ...orphanedDevicesWithDetails]
 
-      return response.ok({
-        deviceMapping: finalTree.length > 0 ? finalTree : null,
-      })
+      return response.ok(finalTree.length > 0 ? finalTree : [])
     } catch (error) {
       console.error('Error getting device mapping:', error)
       return response.badRequest({

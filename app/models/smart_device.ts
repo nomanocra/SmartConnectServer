@@ -12,6 +12,9 @@ export default class SmartDevice extends BaseModel {
   declare deviceSerial: string
 
   @column()
+  declare name: string
+
+  @column()
   declare isConnected: boolean
 
   @hasMany(() => Sensor)
