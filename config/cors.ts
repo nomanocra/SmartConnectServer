@@ -3,7 +3,7 @@ import env from '#start/env'
 
 /**
  * Configuration options to tweak the CORS policy. The following
- * options are documented on the official documentation website.
+ * options gitare documented on the official documentation website.
  *
  * https://docs.adonisjs.com/guides/security/cors
  */
