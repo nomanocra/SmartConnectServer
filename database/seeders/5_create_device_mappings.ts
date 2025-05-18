@@ -65,19 +65,11 @@ export default class extends BaseSeeder {
         ],
       },
       {
-        name: 'Marseille',
+        name: 'Toulouse',
         children: [
           {
-            deviceSerial: 'bld_dock123',
-            name: 'Dock A',
-          },
-          {
-            deviceSerial: 'bld_dock456',
-            name: 'Dock B',
-          },
-          {
-            deviceSerial: 'bld_dock789',
-            name: 'Dock C',
+            deviceSerial: 'lab_research_tls001',
+            name: 'Laboratoire de recherche de Toulouse - Salle Blanche',
           },
         ],
       },

@@ -29,11 +29,6 @@ export default class extends BaseSeeder {
         isConnected: true,
       },
       {
-        deviceSerial: 'bld_dock456',
-        name: 'Dock B',
-        isConnected: true,
-      },
-      {
         deviceSerial: 'fct_9i8h7g6f',
         name: 'Hangar C',
         isConnected: false,
@@ -49,13 +44,8 @@ export default class extends BaseSeeder {
         isConnected: true,
       },
       {
-        deviceSerial: 'bld_dock123',
-        name: 'Dock A',
-        isConnected: true,
-      },
-      {
-        deviceSerial: 'bld_dock789',
-        name: 'Dock C',
+        deviceSerial: 'lab_research_tls001',
+        name: 'Laboratoire de recherche de Toulouse - Salle Blanche',
         isConnected: true,
       },
     ]
