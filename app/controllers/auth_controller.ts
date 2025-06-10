@@ -21,6 +21,7 @@ export default class AuthController {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          organisationName: user.organisationName,
         },
       })
     } catch (error) {
@@ -45,6 +46,7 @@ export default class AuthController {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        organisationName: user.organisationName,
       },
     })
   }
