@@ -32,7 +32,7 @@ export default class Sensor extends BaseModel {
   @column()
   declare isAlert: boolean
 
-  @column.dateTime()
+  @column.dateTime({ autoCreate: false, autoUpdate: false })
   declare lastUpdate: DateTime | null
 
   @belongsTo(() => SmartDevice)

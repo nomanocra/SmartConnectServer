@@ -5,6 +5,8 @@ import SensorHistory from '../models/sensor_history.js'
 import axios from 'axios'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
+import AutoPullService from '../services/auto_pull_service.js'
+import CSVProcessingService from '../services/csv_processing_service.js'
 
 export default class DeviceController {
   async index({ auth, response }: HttpContext) {
@@ -41,6 +43,8 @@ export default class DeviceController {
       startHour,
       startMin,
       startSec,
+      autoPull = false,
+      updateStamp = 10,
     } = request.only([
       'deviceAddress',
       'username',
@@ -52,8 +56,11 @@ export default class DeviceController {
       'startHour',
       'startMin',
       'startSec',
+      'autoPull',
+      'updateStamp',
     ])
 
+    // Validation des paramètres requis
     if (
       !deviceAddress ||
       !username ||
@@ -67,6 +74,14 @@ export default class DeviceController {
       !startSec
     ) {
       return response.status(400).json({ status: 'error', message: 'All parameters are required' })
+    }
+
+    // Validation des paramètres auto-pull
+    if (autoPull && (updateStamp < 5 || updateStamp > 240)) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'updateStamp must be between 5 and 240 minutes',
+      })
     }
 
     try {
@@ -99,16 +114,38 @@ export default class DeviceController {
           deviceSerial: deviceAddress,
           name: deviceName,
           isConnected: true,
+          autoPull: autoPull,
+          updateStamp: updateStamp,
+          autoPullUsername: autoPull ? username : null,
+          autoPullPassword: autoPull ? password : null,
         })
       } else if (device) {
         device.name = deviceName
         device.isConnected = true
+        device.autoPull = autoPull
+        device.updateStamp = updateStamp
+        device.autoPullUsername = autoPull ? username : null
+        device.autoPullPassword = autoPull ? password : null
         await device.save()
       }
 
       if (device) {
         await device.related('users').attach([user.id])
-        const processingStats = await this.processCSVData(deviceData, device.id.toString())
+        const processingStats = await CSVProcessingService.processCSVData(
+          deviceData,
+          device.id.toString()
+        )
+
+        // Gestion de l'auto-pull
+        const autoPullService = AutoPullService.getInstance()
+        let autoPullStarted = false
+
+        if (autoPull) {
+          autoPullStarted = await autoPullService.startAutoPull(device.id)
+        } else {
+          // Arrêter l'auto-pull si il était actif
+          autoPullService.stopAutoPull(device.id)
+        }
 
         return response.json({
           status: 'success',
@@ -118,6 +155,11 @@ export default class DeviceController {
             name: device.name,
             deviceSerial: device.deviceSerial,
             action: isNewDevice ? 'created' : 'updated',
+            autoPull: {
+              enabled: autoPull,
+              interval: updateStamp,
+              started: autoPullStarted,
+            },
           },
           processingStats,
         })
@@ -156,6 +198,10 @@ export default class DeviceController {
           .json({ status: 'error', message: 'Device not found or access denied' })
       }
 
+      // Arrêter les tâches d'auto-pull avant la suppression
+      const autoPullService = AutoPullService.getInstance()
+      autoPullService.stopAutoPull(device.id)
+
       await this._cleanupDeviceSensors(device.id.toString())
       await device.related('users').detach([user.id])
       await device.delete()
@@ -172,87 +218,96 @@ export default class DeviceController {
     }
   }
 
-  private async processCSVData(csvData: string, smartDeviceId: string) {
-    const lines = csvData.trim().split('\n')
-    const headers = lines[0].split(',')
-    let sensorsCreated = 0
+  /**
+   * Obtenir le statut de l'auto-pull pour un device
+   */
+  async getAutoPullStatus({ auth, params, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim()
-      if (!line) continue
-
-      const values = line.split(',')
-      if (values.length < headers.length) continue
-
-      const rowData: { [key: string]: string } = {}
-      headers.forEach((header, index) => {
-        const value = values[index]?.trim() || ''
-        rowData[header.trim()] =
-          value.startsWith('"') && value.endsWith('"')
-            ? value.substring(1, value.length - 1)
-            : value
-      })
-
-      const deviceName = rowData['Device_Name']
-      const value = rowData['Value']
-      const unit = rowData['Unit']
-      const timestamp = rowData['Timestamp'] || rowData['Date'] || rowData['Time']
-
-      if (!deviceName || !value) continue
-
-      let sensor = await Sensor.query()
-        .where('type', deviceName)
-        .where('smartDeviceId', smartDeviceId)
+      const device = await SmartDevice.query()
+        .where('id', params.id)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
         .first()
 
-      if (!sensor) {
-        // Création du capteur avec sensor_id temporaire
-        sensor = await Sensor.create({
-          smartDeviceId: smartDeviceId,
-          name: deviceName,
-          nom: deviceName,
-          type: deviceName, // Le type contient le nom du capteur (Device_Name)
-          sensor_id: 'temp', // Temporaire, sera mis à jour après
-          value: '',
-          unit: unit || null,
-          isAlert: false,
-          lastUpdate: null,
-        })
-
-        // Après création, update sensor_id avec le format name_id
-        sensor.sensor_id = `${deviceName}_${sensor.id}`
-        await sensor.save()
-        sensorsCreated++
-      } else {
-        if (unit && sensor.unit !== unit) {
-          sensor.unit = unit
-          await sensor.save()
-        }
+      if (!device) {
+        return response
+          .status(404)
+          .json({ status: 'error', message: 'Device not found or access denied' })
       }
 
-      let recordedAt: DateTime
-      try {
-        // Le timestamp du CSV est au format "2025-06-21 22:00:00"
-        // On doit le convertir en format ISO "2025-06-21T22:00:00"
-        let isoTimestamp = timestamp
-        if (timestamp && timestamp.includes(' ') && !timestamp.includes('T')) {
-          isoTimestamp = timestamp.replace(' ', 'T')
-        }
+      const autoPullService = AutoPullService.getInstance()
+      const isActive = autoPullService.isTaskActive(device.id)
+      const taskStatus = autoPullService
+        .getTasksStatus()
+        .find((task) => task.deviceId === device.id)
 
-        recordedAt = DateTime.fromISO(isoTimestamp)
-        if (!recordedAt.isValid) {
-          console.warn(`Invalid timestamp format: ${timestamp}, using current time`)
-          recordedAt = DateTime.now()
-        }
-      } catch (error) {
-        console.warn(`Error parsing timestamp: ${timestamp}, using current time. Error:`, error)
-        recordedAt = DateTime.now()
-      }
-
-      await SensorHistory.create({ sensorId: sensor.id, value: value, recordedAt: recordedAt })
+      return response.json({
+        status: 'success',
+        data: {
+          deviceId: device.id,
+          deviceName: device.name,
+          autoPull: {
+            enabled: device.autoPull,
+            interval: device.updateStamp,
+            isActive: isActive,
+            lastRun: taskStatus?.lastRun || null,
+            nextRun: taskStatus?.nextRun || null,
+          },
+        },
+      })
+    } catch (error) {
+      console.error('Erreur lors de la récupération du statut auto-pull:', error)
+      return response
+        .status(500)
+        .json({ status: 'error', message: 'An error occurred while getting auto-pull status' })
     }
+  }
 
-    return { processedLines: lines.length - 1, sensorsCreated }
+  /**
+   * Obtenir le statut de tous les auto-pulls pour l'utilisateur
+   */
+  async getAllAutoPullStatus({ auth, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+
+      const devices = await SmartDevice.query()
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .where('auto_pull', true)
+
+      const autoPullService = AutoPullService.getInstance()
+      const tasksStatus = autoPullService.getTasksStatus()
+
+      const devicesWithStatus = devices.map((device) => {
+        const taskStatus = tasksStatus.find((task) => task.deviceId === device.id)
+        return {
+          deviceId: device.id,
+          deviceName: device.name,
+          deviceSerial: device.deviceSerial,
+          autoPull: {
+            enabled: device.autoPull,
+            interval: device.updateStamp,
+            isActive: autoPullService.isTaskActive(device.id),
+            lastRun: taskStatus?.lastRun || null,
+            nextRun: taskStatus?.nextRun || null,
+          },
+        }
+      })
+
+      return response.json({
+        status: 'success',
+        data: devicesWithStatus,
+      })
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statuts auto-pull:', error)
+      return response
+        .status(500)
+        .json({ status: 'error', message: 'An error occurred while getting auto-pull statuses' })
+    }
   }
 
   private async _cleanupDeviceSensors(deviceId: string) {

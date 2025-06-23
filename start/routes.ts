@@ -51,6 +51,15 @@ router
   .delete('/devices/:id', '#controllers/smart_devices_controller.destroy')
   .use(middleware.auth({ guards: ['api'] }))
 
+// Auto-pull routes
+router
+  .get('/devices/:id/auto-pull/status', '#controllers/smart_devices_controller.getAutoPullStatus')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .get('/devices/auto-pull/status', '#controllers/smart_devices_controller.getAllAutoPullStatus')
+  .use(middleware.auth({ guards: ['api'] }))
+
 router
   .get('/sensor-history', '#controllers/sensor_histories_controller.index')
   .use(middleware.auth({ guards: ['api'] }))

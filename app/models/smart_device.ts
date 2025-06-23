@@ -17,6 +17,18 @@ export default class SmartDevice extends BaseModel {
   @column()
   declare isConnected: boolean
 
+  @column()
+  declare autoPull: boolean
+
+  @column()
+  declare updateStamp: number
+
+  @column()
+  declare autoPullUsername: string | null
+
+  @column()
+  declare autoPullPassword: string | null
+
   @hasMany(() => Sensor)
   declare sensors: HasMany<typeof Sensor>
 

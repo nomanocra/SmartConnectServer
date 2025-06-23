@@ -39,6 +39,11 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
   })
   .httpServer()
   .start()
+  .then(async () => {
+    // Initialiser les auto-pulls après le démarrage du serveur
+    console.log('Server started, initializing auto-pull tasks...')
+    await import('#start/auto_pull_init')
+  })
   .catch((error) => {
     process.exitCode = 1
     prettyPrintError(error)

@@ -1,51 +1,70 @@
 import { BaseCommand } from '@adonisjs/core/ace'
-import { inject } from '@adonisjs/core'
-import db from '@adonisjs/lucid/services/db'
+import Sensor from '#models/sensor'
+import SmartDevice from '#models/smart_device'
+import CSVProcessingService from '#services/csv_processing_service'
 
-@inject()
 export default class FixSensors extends BaseCommand {
   static commandName = 'fix:sensors'
-  static description = 'Fix existing sensors structure'
+  static description = 'Fix sensor data and test lastUpdate functionality'
 
   async run() {
+    this.logger.info('Starting sensor fix and lastUpdate test...')
+
     try {
-      this.logger.info('🔧 Début de la correction des capteurs existants...')
+      // Récupérer tous les devices
+      const devices = await SmartDevice.all()
+      this.logger.info(`Found ${devices.length} devices`)
 
-      // Récupérer tous les capteurs
-      const sensors = await db.from('sensors').select('*')
-      this.logger.info(`📊 ${sensors.length} capteurs trouvés`)
+      for (const device of devices) {
+        this.logger.info(`Processing device: ${device.name} (ID: ${device.id})`)
 
-      let updatedCount = 0
+        // Récupérer les sensors du device
+        const sensors = await Sensor.query().where('smartDeviceId', device.id.toString())
+        this.logger.info(`Found ${sensors.length} sensors for device ${device.name}`)
 
-      for (const sensor of sensors) {
-        // Vérifier si le capteur a l'ancienne structure
-        if (sensor.sensor_id && sensor.sensor_id !== sensor.id.toString() && !sensor.type) {
-          this.logger.info(
-            `🔄 Correction du capteur ${sensor.id}: sensor_id="${sensor.sensor_id}" -> type="${sensor.sensor_id}", sensor_id="${sensor.id}"`
-          )
-
-          await db.from('sensors').where('id', sensor.id).update({
-            type: sensor.sensor_id,
-            sensor_id: sensor.id.toString(),
-          })
-
-          updatedCount++
+        // Afficher l'état actuel des sensors
+        for (const sensor of sensors) {
+          this.logger.info(`Sensor ${sensor.id} (${sensor.name}):`)
+          this.logger.info(`  - Value: ${sensor.value}`)
+          this.logger.info(`  - LastUpdate: ${sensor.lastUpdate?.toISO() || 'null'}`)
+          this.logger.info(`  - Unit: ${sensor.unit || 'null'}`)
         }
-        // Si sensor_id est déjà correct mais type est vide
-        else if (sensor.sensor_id === sensor.id.toString() && !sensor.type) {
-          this.logger.info(`🔄 Correction du capteur ${sensor.id}: type="${sensor.name}"`)
 
-          await db.from('sensors').where('id', sensor.id).update({
-            type: sensor.name,
-          })
+        // Test de mise à jour du lastUpdate avec des données CSV simulées
+        this.logger.info(`Testing lastUpdate functionality for device ${device.name}...`)
 
-          updatedCount++
+        const testCSVData = `Device_Name,Value,Unit,Timestamp
+Temperature,${Math.floor(Math.random() * 30) + 10},°C,2025-01-15 14:30:00
+Humidity,${Math.floor(Math.random() * 40) + 30},%,2025-01-15 14:30:00
+Pressure,${Math.floor(Math.random() * 50) + 1000},hPa,2025-01-15 14:30:00`
+
+        this.logger.info('Processing test CSV data...')
+        const processingStats = await CSVProcessingService.processCSVData(
+          testCSVData,
+          device.id.toString()
+        )
+        this.logger.info(
+          `CSV processing completed: processedLines=${processingStats.processedLines}, sensorsCreated=${processingStats.sensorsCreated}`
+        )
+
+        // Vérifier les sensors après traitement
+        const updatedSensors = await Sensor.query().where('smartDeviceId', device.id.toString())
+        this.logger.info(`Sensors after processing:`)
+
+        for (const sensor of updatedSensors) {
+          this.logger.info(`Sensor ${sensor.id} (${sensor.name}):`)
+          this.logger.info(`  - Value: ${sensor.value}`)
+          this.logger.info(`  - LastUpdate: ${sensor.lastUpdate?.toISO() || 'null'}`)
+          this.logger.info(`  - Unit: ${sensor.unit || 'null'}`)
         }
+
+        this.logger.info('---')
       }
 
-      this.logger.success(`✅ ${updatedCount} capteurs corrigés avec succès`)
+      this.logger.info('Sensor fix and lastUpdate test completed successfully!')
     } catch (error) {
-      this.logger.error('❌ Erreur lors de la correction:', error)
+      this.logger.error('Error during sensor fix:', error)
+      throw error
     }
   }
 }
