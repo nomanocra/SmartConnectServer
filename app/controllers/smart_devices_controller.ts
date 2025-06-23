@@ -4,7 +4,6 @@ import Sensor from '../models/sensor.js'
 import SensorHistory from '../models/sensor_history.js'
 import axios from 'axios'
 import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
 import AutoPullService from '../services/auto_pull_service.js'
 import CSVProcessingService from '../services/csv_processing_service.js'
 
@@ -307,6 +306,80 @@ export default class DeviceController {
       return response
         .status(500)
         .json({ status: 'error', message: 'An error occurred while getting auto-pull statuses' })
+    }
+  }
+
+  /**
+   * Mettre à jour un device (nom, autoPull, updateStamp)
+   */
+  async update({ auth, params, request, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+      const device = await SmartDevice.query()
+        .where('id', params.id)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .first()
+
+      if (!device) {
+        return response
+          .status(404)
+          .json({ status: 'error', message: 'Device not found or access denied' })
+      }
+
+      const { deviceName, autoPull, updateStamp } = request.only([
+        'deviceName',
+        'autoPull',
+        'updateStamp',
+      ])
+      let changed = false
+
+      if (deviceName !== undefined) {
+        device.name = deviceName
+        changed = true
+      }
+      if (autoPull !== undefined) {
+        device.autoPull = autoPull
+        changed = true
+      }
+      if (updateStamp !== undefined) {
+        if (typeof updateStamp !== 'number' || updateStamp < 5 || updateStamp > 240) {
+          return response
+            .status(400)
+            .json({ status: 'error', message: 'updateStamp must be between 5 and 240 minutes' })
+        }
+        device.updateStamp = updateStamp
+        changed = true
+      }
+      if (!changed) {
+        return response.status(400).json({ status: 'error', message: 'No valid fields to update' })
+      }
+      await device.save()
+
+      // Gestion de l'auto-pull
+      const autoPullService = AutoPullService.getInstance()
+      if (device.autoPull) {
+        await autoPullService.startAutoPull(device.id)
+      } else {
+        autoPullService.stopAutoPull(device.id)
+      }
+
+      return response.json({
+        status: 'success',
+        message: 'Device updated successfully',
+        device: {
+          id: device.id,
+          name: device.name,
+          autoPull: device.autoPull,
+          updateStamp: device.updateStamp,
+        },
+      })
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du device:', error)
+      return response
+        .status(500)
+        .json({ status: 'error', message: 'An error occurred while updating the device' })
     }
   }
 

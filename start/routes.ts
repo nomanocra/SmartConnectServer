@@ -63,3 +63,7 @@ router
 router
   .get('/sensor-history', '#controllers/sensor_histories_controller.index')
   .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .put('/devices/:id', '#controllers/smart_devices_controller.update')
+  .use(middleware.auth({ guards: ['api'] }))
