@@ -219,8 +219,8 @@ export default class DeviceController {
           lastUpdate: null,
         })
 
-        // Après création, update sensor_id avec l'id réel du capteur
-        sensor.sensor_id = sensor.id.toString()
+        // Après création, update sensor_id avec le format name_id
+        sensor.sensor_id = `${deviceName}_${sensor.id}`
         await sensor.save()
         sensorsCreated++
       } else {
@@ -232,11 +232,20 @@ export default class DeviceController {
 
       let recordedAt: DateTime
       try {
-        recordedAt = DateTime.fromISO(timestamp)
+        // Le timestamp du CSV est au format "2025-06-21 22:00:00"
+        // On doit le convertir en format ISO "2025-06-21T22:00:00"
+        let isoTimestamp = timestamp
+        if (timestamp && timestamp.includes(' ') && !timestamp.includes('T')) {
+          isoTimestamp = timestamp.replace(' ', 'T')
+        }
+
+        recordedAt = DateTime.fromISO(isoTimestamp)
         if (!recordedAt.isValid) {
+          console.warn(`Invalid timestamp format: ${timestamp}, using current time`)
           recordedAt = DateTime.now()
         }
-      } catch {
+      } catch (error) {
+        console.warn(`Error parsing timestamp: ${timestamp}, using current time. Error:`, error)
         recordedAt = DateTime.now()
       }
 
