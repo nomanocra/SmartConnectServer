@@ -1,6 +1,6 @@
 {
   "name": "SmartServer",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "updated": "18/05/2025 - 14:50",
   "description": "SmartConnect Server API used for SmartBoard",
   "private": true,
@@ -12,7 +12,8 @@
   "scripts": {
     "start": "node bin/server.js",
     "build": "node ace build",
-    "dev": "node ace serve --hmr",
+    "dev": "node ace serve",
+    "dev:hmr": "node ace serve --hmr",
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -61,6 +62,7 @@
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^21.6.1",
     "@vinejs/vine": "^3.0.0",
+    "axios": "^1.10.0",
     "luxon": "^3.6.1",
     "pg": "^8.14.1",
     "reflect-metadata": "^0.2.2"

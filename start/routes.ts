@@ -44,5 +44,13 @@ router
   .use(middleware.auth({ guards: ['api'] }))
 
 router
+  .post('/device/pull-data', '#controllers/smart_devices_controller.pullData')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .delete('/devices/:id', '#controllers/smart_devices_controller.destroy')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
   .get('/sensor-history', '#controllers/sensor_histories_controller.index')
   .use(middleware.auth({ guards: ['api'] }))

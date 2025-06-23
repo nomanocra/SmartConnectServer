@@ -31,6 +31,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare organisationName: string | null
 
+  @column()
+  declare avatar: string | null
+
   @manyToMany(() => SmartDevice, {
     pivotTable: 'user_devices',
     pivotForeignKey: 'user_id',

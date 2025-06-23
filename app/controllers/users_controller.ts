@@ -50,13 +50,16 @@ export default class UsersController {
 
   async update({ request, response, auth }: HttpContext) {
     try {
-      const { fullName } = request.only(['fullName'])
+      const { fullName, avatar } = request.only(['fullName', 'avatar'])
 
       // Récupérer l'utilisateur connecté
       const user = await auth.use('api').getUserOrFail()
 
-      // Mettre à jour le nom
+      // Mettre à jour le nom et l'avatar si fourni
       user.fullName = fullName
+      if (avatar !== undefined) {
+        user.avatar = avatar
+      }
       await user.save()
 
       return response.ok({
@@ -67,6 +70,7 @@ export default class UsersController {
           fullName: user.fullName,
           role: user.role,
           organisationName: user.organisationName,
+          avatar: user.avatar,
         },
       })
     } catch (error) {

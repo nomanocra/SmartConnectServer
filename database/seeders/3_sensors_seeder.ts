@@ -779,14 +779,23 @@ export default class extends BaseSeeder {
       const device = deviceMap.get(deviceSerial)
       if (!device) continue
 
-      await Promise.all(
-        sensors.map((sensorData) =>
-          Sensor.create({
-            smartDeviceId: device.id.toString(),
-            ...sensorData,
-          })
-        )
-      )
+      for (const sensorData of sensors) {
+        const sensor = await Sensor.create({
+          smartDeviceId: device.id.toString(),
+          sensor_id: '', // Sera mis à jour après création
+          name: sensorData.name,
+          nom: sensorData.nom,
+          type: sensorData.name, // Le type contient le nom du capteur
+          value: sensorData.value,
+          unit: sensorData.unit,
+          isAlert: sensorData.isAlert,
+          lastUpdate: sensorData.lastUpdate,
+        })
+
+        // Mettre à jour sensor_id avec l'id du capteur créé
+        sensor.sensor_id = sensor.id.toString()
+        await sensor.save()
+      }
     }
   }
 }

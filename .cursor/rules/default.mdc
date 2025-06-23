@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
 # Project: SmartConnectServer
@@ -9,11 +9,13 @@ This project serves as the backend for SmartConnectApp, an IoT data management d
 
 Ce projet sert de backend pour SmartConnectApp, une application de tableau de bord de gestion IoT. Le serveur gère les appareils, la collecte de données des capteurs et l'organisation hiérarchique des appareils IoT.
 
-## Technical Stack / Stack Technique
-- Framework: AdonisJS v6
-- Database: PostgreSQL
-- ORM: Lucid
-- Authentication: Access Tokens Guard
+## Stack Technique / Technical Stack
+
+- **Framework** : AdonisJS v6
+- **Database** : PostgreSQL
+- **ORM** : Lucid
+- **Authentication** : Access Tokens Guard
+- **Language** : TypeScript
 
 ## Core Features / Fonctionnalités principales
 1. **Authentication / Authentification**
@@ -26,16 +28,20 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
    - Contains multiple sensors
    - Manages device configuration and status
    - Handles real-time data collection from sensors
+   - **NEW**: CSV data processing from IoT devices
+   - **NEW**: Complete device deletion with cascade
 
 3. **Sensor Data / Données des capteurs**
    - Historical data storage and retrieval
    - Time-series data management
    - Data validation and processing
    - Supports multiple sensor types
+   - **NEW**: Automatic sensor creation from CSV data
+   - **NEW**: Sensor history tracking with timestamps
 
 4. **Hierarchical Structure / Structure hiérarchique**
    - Flexible location-based organization
-   - Supports multiple organizational levels. This organization is flexible, and here is jsut an example:
+   - Supports multiple organizational levels. This organization is flexible, and here is just an example:
      * Regions/Cities (e.g., Paris, Toulouse)
      * Buildings/Areas (e.g., Hangars)
      * Device Groups (Floor, Entry, Room1)
@@ -47,7 +53,11 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
   * Users
   * SmartDevices
   * Sensors
-  * Sensor Data Records
+  * Sensor Data Records (SensorHistory)
+- **Key Relationships**:
+  * Users ↔ SmartDevices (Many-to-Many via user_devices table)
+  * SmartDevices → Sensors (One-to-Many)
+  * Sensors → SensorHistory (One-to-Many)
 
 ## API Endpoints / Points d'accès API
 The server provides RESTful APIs for:
@@ -55,18 +65,77 @@ The server provides RESTful APIs for:
 2. SmartDevice CRUD operations
 3. Sensor data retrieval and storage
 4. Location hierarchy management
+5. **NEW**: CSV data processing and sensor creation
+6. **NEW**: Complete device deletion with data cleanup
+
+### Key Endpoints / Endpoints principaux
+- `POST /device/pull-data` - Process CSV data from IoT devices
+- `DELETE /devices/:id` - Delete device and all associated data
+- `GET /sensor-history` - Retrieve sensor historical data
+- `GET /devices` - List user's devices
+- `GET /users/device-mapping` - Get hierarchical device structure
 
 ## Development Guidelines / Directives de développement
+
+### Code Standards / Standards de code
 - Follow AdonisJS best practices and conventions
 - Use Lucid models for database operations
 - Implement proper error handling and validation
 - Maintain secure authentication practices
 - Document all API endpoints
+- **NEW**: Use TypeScript strict mode
+- **NEW**: Implement proper CSV data validation
+- **NEW**: Handle database transactions for data integrity
+
+### File Organization / Organisation des fichiers
+- Controllers in `app/controllers/`
+- Models in `app/models/`
+- Middleware in `app/middleware/`
+- Migrations in `database/migrations/`
+- Seeders in `database/seeders/`
+- Routes in `start/routes.ts`
+
+### Naming Conventions / Conventions de nommage
+- Controllers: `snake_case_controller.ts`
+- Models: `PascalCase.ts`
+- Migrations: `YYYYMMDDHHMMSS_description.ts`
+- Database tables: `snake_case`
+- API endpoints: `kebab-case`
+
+### Error Handling / Gestion d'erreurs
+- Always use try-catch blocks in controllers
+- Return appropriate HTTP status codes
+- Provide meaningful error messages
+- Log errors for debugging
+- Handle database constraint violations gracefully
+
+### Security Best Practices / Bonnes pratiques de sécurité
+- Validate all input data
+- Use parameterized queries (Lucid handles this)
+- Implement proper authentication checks
+- Sanitize CSV data before processing
+- Use environment variables for sensitive data
+
+## Recent Features / Fonctionnalités récentes
+
+### CSV Data Processing / Traitement des données CSV
+- Automatic sensor creation from Device_Name
+- Sensor history tracking with timestamps
+- Unit detection and storage
+- Data validation and error handling
+- Processing statistics reporting
+
+### Device Management / Gestion des devices
+- Complete device deletion with cascade
+- Sensor and history cleanup
+- User association management
+- Processing statistics for data operations
 
 ## External Resources / Ressources externes
 - AdonisJS Documentation: https://docs.adonisjs.com/guides/preface/introduction
 - Lucid Documentation: https://lucid.adonisjs.com/docs/introduction
 - Frontend Repository: https://github.com/nomanocra/SmartconnectApp
+- **NEW**: API Documentation: `API_DOCUMENTATION.md`
 
 ## Security Considerations / Considérations de sécurité
 - Implement proper input validation
@@ -74,3 +143,24 @@ The server provides RESTful APIs for:
 - Follow authentication best practices
 - Protect sensitive device and sensor data
 - Implement proper access control mechanisms
+- **NEW**: Validate CSV data structure
+- **NEW**: Sanitize device credentials
+- **NEW**: Implement rate limiting for data processing
+
+## AI Collaboration Guidelines / Directives pour la collaboration IA
+
+### When working with this codebase / Lors du travail sur ce codebase
+1. **Always check existing patterns** - Look at similar implementations first
+2. **Use TypeScript types** - Leverage the existing model types
+3. **Follow AdonisJS conventions** - Stick to framework patterns
+4. **Test database operations** - Ensure migrations and seeders work
+5. **Update documentation** - Keep API docs and this file current
+6. **Consider security implications** - Validate inputs and handle errors
+7. **Use bilingual comments** - French and English for clarity
+
+### Code Generation Preferences / Préférences de génération de code
+- Prefer explicit error handling over implicit
+- Use descriptive variable names
+- Include JSDoc comments for complex functions
+- Follow the existing controller structure
+- Use the established response format: `{ status, message, data }`

@@ -22,6 +22,7 @@ export default class AuthController {
           fullName: user.fullName,
           role: user.role,
           organisationName: user.organisationName,
+          avatar: user.avatar,
         },
       })
     } catch (error) {
@@ -47,6 +48,7 @@ export default class AuthController {
         fullName: user.fullName,
         role: user.role,
         organisationName: user.organisationName,
+        avatar: user.avatar,
       },
     })
   }
