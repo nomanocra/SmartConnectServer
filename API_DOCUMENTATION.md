@@ -377,6 +377,20 @@ Authorization: Bearer <token>
 }
 ```
 
+**Paramètres optionnels / Optional Parameters:**
+
+```json
+{
+  "autoPull": false,
+  "updateStamp": 10
+}
+```
+
+**Description des paramètres optionnels / Optional Parameters Description:**
+
+- `autoPull` (boolean, défaut: `false`) : Active la récupération automatique des données / Enables automatic data retrieval
+- `updateStamp` (number, défaut: `10`) : Intervalle en minutes entre les récupérations automatiques (5-240 minutes) / Interval in minutes between automatic retrievals (5-240 minutes)
+
 **Réponse de succès / Success Response:**
 
 ```json
@@ -387,7 +401,12 @@ Authorization: Bearer <token>
     "id": 1,
     "name": "My IoT Device",
     "deviceSerial": "http://192.168.1.100",
-    "action": "created"
+    "action": "created",
+    "autoPull": {
+      "enabled": false,
+      "interval": 10,
+      "started": false
+    }
   },
   "processingStats": {
     "processedLines": 1250,
@@ -571,7 +590,9 @@ curl -X POST \
     "startDay": "15",
     "startHour": "10",
     "startMin": "30",
-    "startSec": "00"
+    "startSec": "00",
+    "autoPull": false,
+    "updateStamp": 10
   }'
 ```
 
