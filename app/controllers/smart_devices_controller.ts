@@ -6,6 +6,7 @@ import axios from 'axios'
 import db from '@adonisjs/lucid/services/db'
 import AutoPullService from '../services/auto_pull_service.js'
 import CSVProcessingService from '../services/csv_processing_service.js'
+import ErrorResponseService from '../services/error_response_service.js'
 
 export default class DeviceController {
   async index({ auth, response }: HttpContext) {
@@ -23,10 +24,10 @@ export default class DeviceController {
       })
     } catch (error) {
       console.error(error)
-      return response.status(500).json({
-        status: 'error',
-        message: 'An error occurred while retrieving devices',
-      })
+      return ErrorResponseService.internalServerError(
+        { auth, response } as HttpContext,
+        'An error occurred while retrieving devices'
+      )
     }
   }
 
@@ -72,7 +73,10 @@ export default class DeviceController {
       startMin === undefined ||
       startSec === undefined
     ) {
-      return response.status(400).json({ status: 'error', message: 'All parameters are required' })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'All parameters are required for device data retrieval'
+      )
     }
 
     // Validation des paramètres de date avec conversion en nombres
@@ -85,62 +89,78 @@ export default class DeviceController {
 
     // Validation des plages de valeurs
     if (year < 1900 || year > 2100) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Year must be between 1900 and 2100',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Year must be between 1900 and 2100',
+        'startYear',
+        year
+      )
     }
 
     if (month < 1 || month > 12) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Month must be between 1 and 12',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Month must be between 1 and 12',
+        'startMonth',
+        month
+      )
     }
 
     if (day < 1 || day > 31) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Day must be between 1 and 31',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Day must be between 1 and 31',
+        'startDay',
+        day
+      )
     }
 
     if (hour < 0 || hour > 23) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Hour must be between 0 and 23',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Hour must be between 0 and 23',
+        'startHour',
+        hour
+      )
     }
 
     if (minute < 0 || minute > 59) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Minute must be between 0 and 59',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Minute must be between 0 and 59',
+        'startMin',
+        minute
+      )
     }
 
     if (second < 0 || second > 59) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Second must be between 0 and 59',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Second must be between 0 and 59',
+        'startSec',
+        second
+      )
     }
 
     // Validation de la date (vérifier si la date existe réellement)
     const date = new Date(year, month - 1, day)
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'Invalid date: the specified date does not exist',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'Invalid date: the specified date does not exist',
+        'date',
+        `${year}-${month}-${day}`
+      )
     }
 
     // Validation des paramètres auto-pull
     if (autoPull && (updateStamp < 5 || updateStamp > 240)) {
-      return response.status(400).json({
-        status: 'error',
-        message: 'updateStamp must be between 5 and 240 minutes',
-      })
+      return ErrorResponseService.validationError(
+        { auth, request, response } as HttpContext,
+        'updateStamp must be between 5 and 240 minutes',
+        'updateStamp',
+        updateStamp
+      )
     }
 
     try {
@@ -168,11 +188,18 @@ export default class DeviceController {
           .first())
 
       if (isAlreadyAssociated && device) {
-        return response.status(409).json({
-          status: 'error',
-          message: 'This device is already associated with your account.',
-          deviceInfo: { id: device.id, name: device.name, deviceSerial: device.deviceSerial },
-        })
+        return ErrorResponseService.createProblemResponse(
+          { auth, request, response } as HttpContext,
+          409,
+          'Resource Conflict',
+          'This device is already associated with your account',
+          '/problems/conflict-error',
+          undefined,
+          {
+            resourceType: 'SmartDevice',
+            deviceId: device.id,
+          }
+        )
       }
 
       const isNewDevice = !device
@@ -232,20 +259,23 @@ export default class DeviceController {
         })
       }
       // Fallback au cas où le device ne serait toujours pas défini
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'Could not create or update device.' })
+      return ErrorResponseService.internalServerError(
+        { auth, request, response } as HttpContext,
+        'Could not create or update device'
+      )
     } catch (error: any) {
       if (error.code === 'ECONNRESET' || error.response?.status === 401) {
-        return response.status(401).json({
-          status: 'error',
-          message: 'Invalid credentials or device unreachable. Please check the device details.',
-        })
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Invalid credentials or device unreachable. Please check the device details.',
+          deviceAddress
+        )
       }
       console.error('Erreur dans pullData:', error)
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'An error occurred while processing the request' })
+      return ErrorResponseService.internalServerError(
+        { auth, request, response } as HttpContext,
+        'An error occurred while processing the request'
+      )
     }
   }
 
@@ -260,9 +290,11 @@ export default class DeviceController {
         .first()
 
       if (!device) {
-        return response
-          .status(404)
-          .json({ status: 'error', message: 'Device not found or access denied' })
+        return ErrorResponseService.notFoundError(
+          { auth, params, response } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
       }
 
       // Arrêter les tâches d'auto-pull avant la suppression
@@ -279,9 +311,10 @@ export default class DeviceController {
       })
     } catch (error) {
       console.error('Erreur lors de la suppression du device:', error)
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'An error occurred while deleting the device' })
+      return ErrorResponseService.internalServerError(
+        { auth, params, response } as HttpContext,
+        'An error occurred while deleting the device'
+      )
     }
   }
 
@@ -300,9 +333,11 @@ export default class DeviceController {
         .first()
 
       if (!device) {
-        return response
-          .status(404)
-          .json({ status: 'error', message: 'Device not found or access denied' })
+        return ErrorResponseService.notFoundError(
+          { auth, params, response } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
       }
 
       const autoPullService = AutoPullService.getInstance()
@@ -327,9 +362,10 @@ export default class DeviceController {
       })
     } catch (error) {
       console.error('Erreur lors de la récupération du statut auto-pull:', error)
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'An error occurred while getting auto-pull status' })
+      return ErrorResponseService.internalServerError(
+        { auth, params, response } as HttpContext,
+        'An error occurred while getting auto-pull status'
+      )
     }
   }
 
@@ -371,9 +407,10 @@ export default class DeviceController {
       })
     } catch (error) {
       console.error('Erreur lors de la récupération des statuts auto-pull:', error)
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'An error occurred while getting auto-pull statuses' })
+      return ErrorResponseService.internalServerError(
+        { auth, response } as HttpContext,
+        'An error occurred while getting auto-pull statuses'
+      )
     }
   }
 
@@ -391,9 +428,11 @@ export default class DeviceController {
         .first()
 
       if (!device) {
-        return response
-          .status(404)
-          .json({ status: 'error', message: 'Device not found or access denied' })
+        return ErrorResponseService.notFoundError(
+          { auth, params, request, response } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
       }
 
       const { deviceName, autoPull, updateStamp } = request.only([
@@ -413,15 +452,21 @@ export default class DeviceController {
       }
       if (updateStamp !== undefined) {
         if (typeof updateStamp !== 'number' || updateStamp < 5 || updateStamp > 240) {
-          return response
-            .status(400)
-            .json({ status: 'error', message: 'updateStamp must be between 5 and 240 minutes' })
+          return ErrorResponseService.validationError(
+            { auth, params, request, response } as HttpContext,
+            'updateStamp must be between 5 and 240 minutes',
+            'updateStamp',
+            updateStamp
+          )
         }
         device.updateStamp = updateStamp
         changed = true
       }
       if (!changed) {
-        return response.status(400).json({ status: 'error', message: 'No valid fields to update' })
+        return ErrorResponseService.validationError(
+          { auth, params, request, response } as HttpContext,
+          'No valid fields to update'
+        )
       }
       await device.save()
 
@@ -445,9 +490,10 @@ export default class DeviceController {
       })
     } catch (error) {
       console.error('Erreur lors de la mise à jour du device:', error)
-      return response
-        .status(500)
-        .json({ status: 'error', message: 'An error occurred while updating the device' })
+      return ErrorResponseService.internalServerError(
+        { auth, params, request, response } as HttpContext,
+        'An error occurred while updating the device'
+      )
     }
   }
 
