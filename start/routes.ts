@@ -67,3 +67,7 @@ router
 router
   .put('/devices/:id', '#controllers/smart_devices_controller.update')
   .use(middleware.auth({ guards: ['api'] }))
+
+// Problems documentation routes
+router.get('/problems', '#controllers/problems_controller.index')
+router.get('/problems/:type', '#controllers/problems_controller.show')
