@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import ErrorResponseService from '../services/error_response_service.js'
 
 export default class UsersController {
   async store({ request, response }: HttpContext) {
@@ -15,9 +16,11 @@ export default class UsersController {
       // Vérifier si l'utilisateur existe déjà
       const existingUser = await User.findBy('email', email)
       if (existingUser) {
-        return response.badRequest({
-          message: 'User already exists',
-        })
+        return ErrorResponseService.conflictError(
+          { request, response } as HttpContext,
+          'User already exists',
+          'User'
+        )
       }
 
       // Créer le nouvel utilisateur
@@ -30,21 +33,26 @@ export default class UsersController {
       })
 
       return response.created({
+        status: 'success',
         message: 'User created successfully',
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          organisationName: user.organisationName,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role,
+            organisationName: user.organisationName,
+          },
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Error creating user:', error)
-      return response.badRequest({
-        message: 'Error creating user',
-        error: error.message,
-      })
+      return ErrorResponseService.databaseError(
+        { request, response } as HttpContext,
+        'Error creating user',
+        'create'
+      )
     }
   }
 
@@ -63,22 +71,27 @@ export default class UsersController {
       await user.save()
 
       return response.ok({
+        status: 'success',
         message: 'User updated successfully',
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          organisationName: user.organisationName,
-          avatar: user.avatar,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role,
+            organisationName: user.organisationName,
+            avatar: user.avatar,
+          },
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Error updating user:', error)
-      return response.badRequest({
-        message: 'Error updating user',
-        error: error.message,
-      })
+      return ErrorResponseService.databaseError(
+        { request, response, auth } as HttpContext,
+        'Error updating user',
+        'update'
+      )
     }
   }
 }

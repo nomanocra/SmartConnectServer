@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import Sensor from '#models/sensor'
+import ErrorResponseService from '../services/error_response_service.js'
 
 export default class SensorHistoriesController {
   async index({ request, response }: HttpContext) {
@@ -9,14 +10,23 @@ export default class SensorHistoriesController {
     const endDate = request.input('end_date')
 
     if (!sensorIds || !Array.isArray(sensorIds) || sensorIds.length === 0) {
-      return response.badRequest({ error: 'sensor_ids array is required' })
+      return ErrorResponseService.validationError(
+        { request, response } as HttpContext,
+        'sensor_ids array is required',
+        'sensor_ids',
+        sensorIds
+      )
     }
 
     try {
       const sensors = await Sensor.query().whereIn('sensor_id', sensorIds)
 
       if (sensors.length === 0) {
-        return response.notFound({ error: 'No sensors found' })
+        return ErrorResponseService.notFoundError(
+          { request, response } as HttpContext,
+          'No sensors found',
+          'Sensor'
+        )
       }
 
       const results = await Promise.all(
@@ -50,9 +60,18 @@ export default class SensorHistoriesController {
         })
       )
 
-      return response.ok(results)
+      return response.ok({
+        status: 'success',
+        message: 'Sensor histories retrieved successfully',
+        data: results,
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
-      return response.badRequest({ error: 'Error fetching sensor histories' })
+      console.error('Error fetching sensor histories:', error)
+      return ErrorResponseService.internalServerError(
+        { request, response } as HttpContext,
+        'Error fetching sensor histories'
+      )
     }
   }
 }

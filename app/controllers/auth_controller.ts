@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import ErrorResponseService from '../services/error_response_service.js'
 
 export default class AuthController {
   async login({ request, response, auth }: HttpContext) {
@@ -14,8 +15,42 @@ export default class AuthController {
       }
 
       return response.ok({
-        type: 'bearer',
-        token: token.value.release(),
+        status: 'success',
+        message: 'Login successful',
+        data: {
+          type: 'bearer',
+          token: token.value.release(),
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role,
+            organisationName: user.organisationName,
+            avatar: user.avatar,
+          },
+        },
+      })
+    } catch (error) {
+      return ErrorResponseService.authenticationError(
+        { request, response, auth } as HttpContext,
+        'Invalid credentials or authentication error'
+      )
+    }
+  }
+
+  async logout({ auth, response }: HttpContext) {
+    await auth.use('api').invalidateToken()
+    return response.ok({
+      status: 'success',
+      message: 'Logged out successfully',
+    })
+  }
+
+  async me({ auth, response }: HttpContext) {
+    const user = await auth.use('api').getUserOrFail()
+    return response.ok({
+      status: 'success',
+      data: {
         user: {
           id: user.id,
           email: user.email,
@@ -24,31 +59,6 @@ export default class AuthController {
           organisationName: user.organisationName,
           avatar: user.avatar,
         },
-      })
-    } catch (error) {
-      return response.unauthorized({
-        message: 'Invalid credentials or authentication error',
-      })
-    }
-  }
-
-  async logout({ auth, response }: HttpContext) {
-    await auth.use('api').invalidateToken()
-    return response.ok({
-      message: 'Logged out successfully',
-    })
-  }
-
-  async me({ auth, response }: HttpContext) {
-    const user = await auth.use('api').getUserOrFail()
-    return response.ok({
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        organisationName: user.organisationName,
-        avatar: user.avatar,
       },
     })
   }
