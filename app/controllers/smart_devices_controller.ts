@@ -8,7 +8,7 @@ import AutoPullService from '../services/auto_pull_service.js'
 import CSVProcessingService from '../services/csv_processing_service.js'
 import ErrorResponseService from '../services/error_response_service.js'
 
-export default class DeviceController {
+export default class SmartDevicesController {
   async index({ auth, response }: HttpContext) {
     try {
       const user = await auth.authenticate()
@@ -27,6 +27,54 @@ export default class DeviceController {
       return ErrorResponseService.internalServerError(
         { auth, response } as HttpContext,
         'An error occurred while retrieving devices'
+      )
+    }
+  }
+
+  /**
+   * Display a single smart device with its sensors
+   */
+  async show({ params, response, auth }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+
+      const device = await SmartDevice.query()
+        .where('id', params.id)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .preload('sensors')
+        .first()
+
+      if (!device) {
+        return ErrorResponseService.notFoundError(
+          { params, response, auth } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
+      }
+
+      return response.json({
+        status: 'success',
+        message: 'Smart device retrieved successfully',
+        data: {
+          id: device.id,
+          deviceSerial: device.deviceSerial,
+          name: device.name,
+          isConnected: device.isConnected,
+          autoPull: device.autoPull,
+          updateStamp: device.updateStamp,
+          sensors: device.sensors,
+          createdAt: device.createdAt,
+          updatedAt: device.updatedAt,
+        },
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error('Error retrieving smart device:', error)
+      return ErrorResponseService.internalServerError(
+        { params, response, auth } as HttpContext,
+        'An error occurred while retrieving the device'
       )
     }
   }

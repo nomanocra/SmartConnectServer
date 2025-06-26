@@ -36,7 +36,15 @@ router
 
 // Device routes
 router
-  .get('/devices/:id', '#controllers/smart_device_controller.show')
+  .get('/devices/:id', '#controllers/smart_devices_controller.show')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .put('/devices/:id', '#controllers/smart_devices_controller.update')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
+  .delete('/devices/:id', '#controllers/smart_devices_controller.destroy')
   .use(middleware.auth({ guards: ['api'] }))
 
 router
@@ -45,10 +53,6 @@ router
 
 router
   .post('/device/pull-data', '#controllers/smart_devices_controller.pullData')
-  .use(middleware.auth({ guards: ['api'] }))
-
-router
-  .delete('/devices/:id', '#controllers/smart_devices_controller.destroy')
   .use(middleware.auth({ guards: ['api'] }))
 
 // Auto-pull routes
@@ -62,10 +66,6 @@ router
 
 router
   .get('/sensor-history', '#controllers/sensor_histories_controller.index')
-  .use(middleware.auth({ guards: ['api'] }))
-
-router
-  .put('/devices/:id', '#controllers/smart_devices_controller.update')
   .use(middleware.auth({ guards: ['api'] }))
 
 // Problems documentation routes
