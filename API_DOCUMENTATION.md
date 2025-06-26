@@ -368,12 +368,45 @@ Authorization: Bearer <token>
   "username": "admin",
   "password": "password123",
   "deviceName": "My IoT Device",
-  "startYear": "2024",
-  "startMonth": "01",
-  "startDay": "15",
-  "startHour": "10",
-  "startMin": "30",
-  "startSec": "00"
+  "startYear": 2024,
+  "startMonth": 1,
+  "startDay": 15,
+  "startHour": 10,
+  "startMin": 30,
+  "startSec": 0
+}
+```
+
+**Validation des paramètres de date / Date Parameters Validation:**
+
+- `startYear` (number) : Année entre 1900 et 2100 / Year between 1900 and 2100
+- `startMonth` (number) : Mois entre 1 et 12 / Month between 1 and 12
+- `startDay` (number) : Jour entre 1 et 31 / Day between 1 and 31
+- `startHour` (number) : Heure entre 0 et 23 / Hour between 0 and 23
+- `startMin` (number) : Minute entre 0 et 59 / Minute between 0 and 59
+- `startSec` (number) : Seconde entre 0 et 59 / Second between 0 and 59
+
+**Exemples de validation / Validation Examples:**
+
+```json
+// ✅ Valide / Valid
+{
+  "startYear": 2024,
+  "startMonth": 12,
+  "startDay": 31,
+  "startHour": 23,
+  "startMin": 59,
+  "startSec": 59
+}
+
+// ❌ Invalide / Invalid
+{
+  "startYear": 1899,        // Trop petit / Too small
+  "startMonth": 13,         // Trop grand / Too large
+  "startDay": 32,           // Jour inexistant / Non-existent day
+  "startHour": 24,          // Heure invalide / Invalid hour
+  "startMin": 60,           // Minute invalide / Invalid minute
+  "startSec": 60            // Seconde invalide / Invalid second
 }
 ```
 
@@ -585,12 +618,12 @@ curl -X POST \
     "username": "admin",
     "password": "password123",
     "deviceName": "My IoT Device",
-    "startYear": "2024",
-    "startMonth": "01",
-    "startDay": "15",
-    "startHour": "10",
-    "startMin": "30",
-    "startSec": "00",
+    "startYear": 2024,
+    "startMonth": 1,
+    "startDay": 15,
+    "startHour": 10,
+    "startMin": 30,
+    "startSec": 0,
     "autoPull": false,
     "updateStamp": 10
   }'

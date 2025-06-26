@@ -65,14 +65,74 @@ export default class DeviceController {
       !username ||
       !password ||
       !deviceName ||
-      !startYear ||
-      !startMonth ||
-      !startDay ||
-      !startHour ||
-      !startMin ||
-      !startSec
+      startYear === undefined ||
+      startMonth === undefined ||
+      startDay === undefined ||
+      startHour === undefined ||
+      startMin === undefined ||
+      startSec === undefined
     ) {
       return response.status(400).json({ status: 'error', message: 'All parameters are required' })
+    }
+
+    // Validation des paramètres de date avec conversion en nombres
+    const year = Number(startYear)
+    const month = Number(startMonth)
+    const day = Number(startDay)
+    const hour = Number(startHour)
+    const minute = Number(startMin)
+    const second = Number(startSec)
+
+    // Validation des plages de valeurs
+    if (year < 1900 || year > 2100) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Year must be between 1900 and 2100',
+      })
+    }
+
+    if (month < 1 || month > 12) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Month must be between 1 and 12',
+      })
+    }
+
+    if (day < 1 || day > 31) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Day must be between 1 and 31',
+      })
+    }
+
+    if (hour < 0 || hour > 23) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Hour must be between 0 and 23',
+      })
+    }
+
+    if (minute < 0 || minute > 59) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Minute must be between 0 and 59',
+      })
+    }
+
+    if (second < 0 || second > 59) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Second must be between 0 and 59',
+      })
+    }
+
+    // Validation de la date (vérifier si la date existe réellement)
+    const date = new Date(year, month - 1, day)
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return response.status(400).json({
+        status: 'error',
+        message: 'Invalid date: the specified date does not exist',
+      })
     }
 
     // Validation des paramètres auto-pull
@@ -85,7 +145,15 @@ export default class DeviceController {
 
     try {
       const user = await auth.authenticate()
-      const deviceUrl = `${deviceAddress}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${startYear}&start_month=${startMonth}&start_day=${startDay}&start_hour=${startHour}&start_min=${startMin}&start_sec=${startSec}`
+
+      // Formatage des paramètres pour l'URL (avec zéro de tête si nécessaire)
+      const formattedMonth = month.toString().padStart(2, '0')
+      const formattedDay = day.toString().padStart(2, '0')
+      const formattedHour = hour.toString().padStart(2, '0')
+      const formattedMinute = minute.toString().padStart(2, '0')
+      const formattedSecond = second.toString().padStart(2, '0')
+
+      const deviceUrl = `${deviceAddress}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${year}&start_month=${formattedMonth}&start_day=${formattedDay}&start_hour=${formattedHour}&start_min=${formattedMinute}&start_sec=${formattedSecond}`
 
       const deviceResponse = await axios.get(deviceUrl, { timeout: 30000 })
       const deviceData = deviceResponse.data
