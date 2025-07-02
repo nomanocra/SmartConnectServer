@@ -137,7 +137,12 @@ export default class ErrorResponseService {
    * Erreur de device IoT
    * IoT device error
    */
-  static deviceError(ctx: HttpContext, detail: string, deviceAddress?: string) {
+  static deviceError(
+    ctx: HttpContext,
+    detail: string,
+    deviceAddress?: string,
+    status: number = 400
+  ) {
     const additionalFields: Record<string, any> = {}
 
     if (deviceAddress) {
@@ -146,7 +151,7 @@ export default class ErrorResponseService {
 
     return this.createProblemResponse(
       ctx,
-      400,
+      status,
       'Device Error',
       detail,
       `${this.BASE_URL}/device-error`,
