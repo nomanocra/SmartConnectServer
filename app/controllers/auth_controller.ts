@@ -29,6 +29,7 @@ export default class AuthController {
             avatar: user.avatar,
           },
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       return ErrorResponseService.authenticationError(
@@ -43,6 +44,8 @@ export default class AuthController {
     return response.ok({
       status: 'success',
       message: 'Logged out successfully',
+      data: {},
+      timestamp: new Date().toISOString(),
     })
   }
 
@@ -50,6 +53,7 @@ export default class AuthController {
     const user = await auth.use('api').getUserOrFail()
     return response.ok({
       status: 'success',
+      message: 'User information retrieved successfully',
       data: {
         user: {
           id: user.id,
@@ -60,6 +64,7 @@ export default class AuthController {
           avatar: user.avatar,
         },
       },
+      timestamp: new Date().toISOString(),
     })
   }
 }

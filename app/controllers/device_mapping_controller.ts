@@ -168,7 +168,9 @@ export default class DeviceMappingController {
 
         return response.ok({
           status: 'success',
+          message: 'Device mapping retrieved successfully',
           data: rootDevices.length > 0 ? rootDevices : [],
+          timestamp: new Date().toISOString(),
         })
       }
 
@@ -218,7 +220,9 @@ export default class DeviceMappingController {
 
       return response.ok({
         status: 'success',
+        message: 'Device mapping retrieved successfully',
         data: finalTree.length > 0 ? finalTree : [],
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Error getting device mapping:', error)
@@ -275,6 +279,7 @@ export default class DeviceMappingController {
         data: {
           deviceMapping: mapping,
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Error updating device mapping:', error)

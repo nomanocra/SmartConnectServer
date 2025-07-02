@@ -124,7 +124,18 @@ export default class SensorsController {
       const sensor = await Sensor.findOrFail(params.id)
       await sensor.delete()
 
-      return response.noContent()
+      return response.json({
+        status: 'success',
+        message: 'Sensor deleted successfully',
+        data: {
+          deletedSensor: {
+            id: sensor.id,
+            name: sensor.name,
+            type: sensor.type,
+          },
+        },
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
       console.error('Error deleting sensor:', error)
       return ErrorResponseService.databaseError(
