@@ -20,7 +20,9 @@ export default class SmartDevicesController {
 
       return response.json({
         status: 'success',
+        message: 'Devices retrieved successfully',
         data: devices,
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error(error)
@@ -239,7 +241,7 @@ export default class SmartDevicesController {
         return ErrorResponseService.createProblemResponse(
           { auth, request, response } as HttpContext,
           409,
-          'Resource Conflict',
+          'Device Conflict',
           'This device is already associated with your account',
           '/problems/conflict-error',
           undefined,
@@ -292,18 +294,21 @@ export default class SmartDevicesController {
         return response.json({
           status: 'success',
           message: `Device successfully ${isNewDevice ? 'created' : 'updated'} and data processed`,
-          deviceInfo: {
-            id: device.id,
-            name: device.name,
-            deviceSerial: device.deviceSerial,
-            action: isNewDevice ? 'created' : 'updated',
-            autoPull: {
-              enabled: autoPull,
-              interval: updateStamp,
-              started: autoPullStarted,
+          data: {
+            deviceInfo: {
+              id: device.id,
+              name: device.name,
+              deviceSerial: device.deviceSerial,
+              action: isNewDevice ? 'created' : 'updated',
+              autoPull: {
+                enabled: autoPull,
+                interval: updateStamp,
+                started: autoPullStarted,
+              },
             },
+            processingStats,
           },
-          processingStats,
+          timestamp: new Date().toISOString(),
         })
       }
       // Fallback au cas où le device ne serait toujours pas défini
@@ -312,13 +317,34 @@ export default class SmartDevicesController {
         'Could not create or update device'
       )
     } catch (error: any) {
-      if (error.code === 'ECONNRESET' || error.response?.status === 401) {
+      if (error.code === 'ECONNRESET') {
         return ErrorResponseService.deviceError(
           { auth, request, response } as HttpContext,
-          'Invalid credentials or device unreachable. Please check the device details.',
-          deviceAddress
+          'Device unreachable. Please check the device address and network connectivity.',
+          deviceAddress,
+          503 // Service Unavailable
         )
       }
+
+      if (error.response?.status === 401) {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Invalid credentials for the IoT device. Please check username and password.',
+          deviceAddress,
+          401 // Unauthorized
+        )
+      }
+
+      // Gestion des autres erreurs HTTP courantes
+      if (error.response?.status) {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          `Device communication error (HTTP ${error.response.status}). Please check device configuration.`,
+          deviceAddress,
+          error.response.status
+        )
+      }
+
       console.error('Erreur dans pullData:', error)
       return ErrorResponseService.internalServerError(
         { auth, request, response } as HttpContext,
@@ -327,7 +353,7 @@ export default class SmartDevicesController {
     }
   }
 
-  async destroy({ auth, params, response }: HttpContext) {
+  async destroy({ auth, params, request, response }: HttpContext) {
     try {
       const user = await auth.authenticate()
       const device = await SmartDevice.query()
@@ -339,7 +365,7 @@ export default class SmartDevicesController {
 
       if (!device) {
         return ErrorResponseService.notFoundError(
-          { auth, params, response } as HttpContext,
+          { auth, params, request, response } as HttpContext,
           'Device not found or access denied',
           'SmartDevice'
         )
@@ -356,11 +382,23 @@ export default class SmartDevicesController {
       return response.json({
         status: 'success',
         message: 'Device and all associated data deleted successfully',
+        data: {
+          deletedDevice: {
+            id: device.id,
+            name: device.name,
+            deviceSerial: device.deviceSerial,
+          },
+          deletedData: {
+            sensorsCount: 0, // À calculer si nécessaire
+            sensorHistoriesCount: 0, // À calculer si nécessaire
+          },
+        },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Erreur lors de la suppression du device:', error)
       return ErrorResponseService.internalServerError(
-        { auth, params, response } as HttpContext,
+        { auth, params, request, response } as HttpContext,
         'An error occurred while deleting the device'
       )
     }
@@ -369,7 +407,7 @@ export default class SmartDevicesController {
   /**
    * Obtenir le statut de l'auto-pull pour un device
    */
-  async getAutoPullStatus({ auth, params, response }: HttpContext) {
+  async getAutoPullStatus({ auth, params, request, response }: HttpContext) {
     try {
       const user = await auth.authenticate()
 
@@ -382,7 +420,7 @@ export default class SmartDevicesController {
 
       if (!device) {
         return ErrorResponseService.notFoundError(
-          { auth, params, response } as HttpContext,
+          { auth, params, request, response } as HttpContext,
           'Device not found or access denied',
           'SmartDevice'
         )
@@ -396,6 +434,7 @@ export default class SmartDevicesController {
 
       return response.json({
         status: 'success',
+        message: 'Auto-pull status retrieved successfully',
         data: {
           deviceId: device.id,
           deviceName: device.name,
@@ -407,6 +446,7 @@ export default class SmartDevicesController {
             nextRun: taskStatus?.nextRun || null,
           },
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Erreur lors de la récupération du statut auto-pull:', error)
@@ -451,7 +491,9 @@ export default class SmartDevicesController {
 
       return response.json({
         status: 'success',
+        message: 'All auto-pull statuses retrieved successfully',
         data: devicesWithStatus,
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Erreur lors de la récupération des statuts auto-pull:', error)
@@ -529,12 +571,15 @@ export default class SmartDevicesController {
       return response.json({
         status: 'success',
         message: 'Device updated successfully',
-        device: {
-          id: device.id,
-          name: device.name,
-          autoPull: device.autoPull,
-          updateStamp: device.updateStamp,
+        data: {
+          device: {
+            id: device.id,
+            name: device.name,
+            autoPull: device.autoPull,
+            updateStamp: device.updateStamp,
+          },
         },
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       console.error('Erreur lors de la mise à jour du device:', error)
