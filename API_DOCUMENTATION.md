@@ -22,6 +22,40 @@ Authorization: Bearer <token>
 http://localhost:3333
 ```
 
+## Gestion des erreurs RFC 7807 / RFC 7807 Error Handling
+
+Le serveur utilise le standard RFC 7807 "Problem Details for HTTP APIs" pour toutes les réponses d'erreur.
+
+The server uses RFC 7807 "Problem Details for HTTP APIs" standard for all error responses.
+
+### Format de réponse d'erreur / Error Response Format
+
+```json
+{
+  "type": "/problems/error-type",
+  "title": "Error Title",
+  "status": 400,
+  "detail": "Detailed error description",
+  "instance": "/api/endpoint",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "resourceType": "SmartDevice",
+  "deviceId": 123,
+  "field": "email",
+  "value": "invalid-email"
+}
+```
+
+### Types d'erreur disponibles / Available Error Types
+
+- `validation-error` : Erreur de validation des paramètres / Parameter validation error
+- `authentication-error` : Erreur d'authentification / Authentication error
+- `authorization-error` : Erreur d'autorisation / Authorization error
+- `not-found-error` : Ressource non trouvée / Resource not found
+- `conflict-error` : Conflit de ressource / Resource conflict
+- `device-error` : Erreur de device IoT (connexion, authentification) / IoT device error (connection, authentication)
+- `internal-server-error` : Erreur interne du serveur / Internal server error
+- `database-error` : Erreur de base de données / Database error
+
 ## Endpoints
 
 ### 🔐 Authentification / Authentication
@@ -62,6 +96,19 @@ User login and token retrieval.
 
 - `200` : Connexion réussie / Login successful
 - `401` : Identifiants invalides / Invalid credentials
+
+**Exemple d'erreur / Error Example:**
+
+```json
+{
+  "type": "/problems/authentication-error",
+  "title": "Authentication Error",
+  "status": 401,
+  "detail": "Invalid email or password",
+  "instance": "/auth/login",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
 
 #### POST /auth/logout
 
@@ -150,6 +197,21 @@ Create a new user.
 - `201` : Utilisateur créé / User created
 - `400` : Erreur de validation / Validation error
 - `409` : Utilisateur existe déjà / User already exists
+
+**Exemple d'erreur de validation / Validation Error Example:**
+
+```json
+{
+  "type": "/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "The email field must be a valid email address",
+  "instance": "/users",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "field": "email",
+  "value": "invalid-email"
+}
+```
 
 #### PUT /users/update
 
@@ -282,6 +344,8 @@ Authorization: Bearer <token>
       "deviceSerial": "http://192.168.1.100",
       "name": "Device 1",
       "isConnected": true,
+      "autoPull": false,
+      "updateStamp": 10,
       "createdAt": "2024-01-15T10:30:00.000Z",
       "updatedAt": "2024-01-15T10:30:00.000Z",
       "sensors": [
@@ -322,24 +386,32 @@ Authorization: Bearer <token>
 
 ```json
 {
-  "id": 1,
-  "deviceSerial": "http://192.168.1.100",
-  "isConnected": true,
-  "sensors": [
-    {
-      "id": 141,
-      "sensor_id": "141",
-      "name": "Humidity",
-      "nom": "Humidité",
-      "type": "Humidity",
-      "value": "45",
-      "unit": "%",
-      "isAlert": false,
-      "lastUpdate": "2024-01-15T10:30:00.000Z"
-    }
-  ],
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z"
+  "status": "success",
+  "message": "Smart device retrieved successfully",
+  "data": {
+    "id": 1,
+    "deviceSerial": "http://192.168.1.100",
+    "name": "Device 1",
+    "isConnected": true,
+    "autoPull": false,
+    "updateStamp": 10,
+    "sensors": [
+      {
+        "id": 141,
+        "sensor_id": "141",
+        "name": "Humidity",
+        "nom": "Humidité",
+        "type": "Humidity",
+        "value": "45",
+        "unit": "%",
+        "isAlert": false,
+        "lastUpdate": "2024-01-15T10:30:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
 
@@ -347,6 +419,20 @@ Authorization: Bearer <token>
 
 - `200` : Device trouvé / Device found
 - `404` : Device non trouvé ou accès refusé / Device not found or access denied
+
+**Exemple d'erreur / Error Example:**
+
+```json
+{
+  "type": "/problems/not-found-error",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "Device not found or access denied",
+  "instance": "/devices/123",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "resourceType": "SmartDevice"
+}
+```
 
 #### POST /device/pull-data
 
@@ -452,8 +538,53 @@ Authorization: Bearer <token>
 
 - `200` : Données traitées avec succès / Data processed successfully
 - `400` : Paramètres manquants / Missing parameters
-- `401` : Identifiants invalides ou device injoignable / Invalid credentials or device unreachable
+- `401` : Identifiants invalides pour le device IoT / Invalid credentials for IoT device
+- `503` : Device injoignable / Device unreachable
+- `409` : Device déjà associé / Device already associated
 - `500` : Erreur serveur / Server error
+
+**Exemple d'erreur de conflit / Conflict Error Example:**
+
+```json
+{
+  "type": "/problems/conflict-error",
+  "title": "Resource Conflict",
+  "status": 409,
+  "detail": "This device is already associated with your account",
+  "instance": "/device/pull-data",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "resourceType": "SmartDevice",
+  "deviceId": 18
+}
+```
+
+**Exemple d'erreur d'authentification de device / Device Authentication Error Example:**
+
+```json
+{
+  "type": "/problems/device-error",
+  "title": "Device Error",
+  "status": 401,
+  "detail": "Invalid credentials for the IoT device. Please check username and password.",
+  "instance": "/device/pull-data",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "deviceAddress": "http://192.168.1.100"
+}
+```
+
+**Exemple d'erreur de connexion device / Device Connection Error Example:**
+
+```json
+{
+  "type": "/problems/device-error",
+  "title": "Device Error",
+  "status": 503,
+  "detail": "Device unreachable. Please check the device address and network connectivity.",
+  "instance": "/device/pull-data",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "deviceAddress": "http://192.168.1.100"
+}
+```
 
 **Fonctionnalités / Features:**
 
@@ -461,6 +592,66 @@ Authorization: Bearer <token>
 - Détection et stockage des unités / Unit detection and storage
 - Gestion des timestamps / Timestamp handling
 - Statistiques de traitement / Processing statistics
+
+#### PUT /devices/:id
+
+Mise à jour de la configuration d'un device.
+
+Update device configuration.
+
+**Headers requis / Required Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Paramètres / Parameters:**
+
+- `id` : ID du device / Device ID
+
+**Corps de la requête / Request Body:**
+
+```json
+{
+  "deviceName": "Updated Device Name",
+  "autoPull": true,
+  "updateStamp": 15
+}
+```
+
+**Validation / Validation:**
+
+- `updateStamp` : Doit être entre 5 et 240 minutes / Must be between 5 and 240 minutes
+
+**Réponse / Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Device updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Updated Device Name",
+    "autoPull": true,
+    "updateStamp": 15
+  }
+}
+```
+
+**Exemple d'erreur de validation / Validation Error Example:**
+
+```json
+{
+  "type": "/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "updateStamp must be between 5 and 240 minutes",
+  "instance": "/devices/1",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "field": "updateStamp",
+  "value": 300
+}
+```
 
 #### DELETE /devices/:id
 
@@ -509,6 +700,94 @@ Authorization: Bearer <token>
 - `200` : Device supprimé avec succès / Device deleted successfully
 - `404` : Device non trouvé ou accès refusé / Device not found or access denied
 - `500` : Erreur serveur / Server error
+
+### 🔄 Auto-Pull Management / Gestion de l'auto-pull
+
+#### GET /devices/:id/auto-pull/status
+
+Récupération du statut de l'auto-pull pour un device spécifique.
+
+Get auto-pull status for a specific device.
+
+**Headers requis / Required Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Paramètres / Parameters:**
+
+- `id` : ID du device / Device ID
+
+**Réponse / Response:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "deviceId": 1,
+    "deviceName": "My IoT Device",
+    "autoPull": {
+      "enabled": true,
+      "interval": 15,
+      "isActive": true,
+      "lastRun": "2024-01-15T10:30:00.000Z",
+      "nextRun": "2024-01-15T10:45:00.000Z"
+    }
+  }
+}
+```
+
+**Codes de statut / Status Codes:**
+
+- `200` : Statut récupéré / Status retrieved
+- `404` : Device non trouvé / Device not found
+
+#### GET /devices/auto-pull/status
+
+Récupération du statut de l'auto-pull pour tous les devices de l'utilisateur.
+
+Get auto-pull status for all user devices.
+
+**Headers requis / Required Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Réponse / Response:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "deviceId": 1,
+      "deviceName": "Device 1",
+      "deviceSerial": "http://192.168.1.100",
+      "autoPull": {
+        "enabled": true,
+        "interval": 15,
+        "isActive": true,
+        "lastRun": "2024-01-15T10:30:00.000Z",
+        "nextRun": "2024-01-15T10:45:00.000Z"
+      }
+    },
+    {
+      "deviceId": 2,
+      "deviceName": "Device 2",
+      "deviceSerial": "http://192.168.1.101",
+      "autoPull": {
+        "enabled": false,
+        "interval": 10,
+        "isActive": false,
+        "lastRun": null,
+        "nextRun": null
+      }
+    }
+  ]
+}
+```
 
 ### 📊 Données des capteurs / Sensor Data
 
@@ -573,12 +852,102 @@ GET /sensor-history?sensor_ids[]=141&sensor_ids[]=142&start_date=2024-01-01T00:0
 - `400` : Paramètres invalides / Invalid parameters
 - `404` : Aucun capteur trouvé / No sensors found
 
+### 📚 Documentation des erreurs / Error Documentation
+
+#### GET /problems
+
+Documentation complète de tous les types d'erreur.
+
+Complete documentation of all error types.
+
+**Réponse / Response:**
+
+```json
+{
+  "title": "SmartConnect IoT API - Error Problems Documentation",
+  "description": "Documentation complète des types d'erreur retournés par l'API SmartConnect IoT",
+  "version": "1.0.0",
+  "baseUrl": "/problems",
+  "problems": {
+    "validation-error": {
+      "title": "Validation Error",
+      "description": "Erreur de validation des paramètres de la requête",
+      "status": "400",
+      "detail": "Les données fournies ne respectent pas les règles de validation",
+      "fields": ["field", "value"],
+      "example": {
+        "type": "/problems/validation-error",
+        "title": "Validation Error",
+        "status": 400,
+        "detail": "Le champ \"email\" doit être une adresse email valide",
+        "field": "email",
+        "value": "invalid-email",
+        "timestamp": "2024-01-01T00:00:00.000Z"
+      }
+    },
+    "conflict-error": {
+      "title": "Resource Conflict",
+      "description": "Conflit de ressource - ressource déjà existante",
+      "status": "409",
+      "detail": "La ressource existe déjà ou est en conflit",
+      "fields": ["resourceType", "deviceId"],
+      "example": {
+        "type": "/problems/conflict-error",
+        "title": "Resource Conflict",
+        "status": 409,
+        "detail": "Un device avec cette adresse existe déjà",
+        "resourceType": "SmartDevice",
+        "deviceId": 18,
+        "timestamp": "2024-01-01T00:00:00.000Z"
+      }
+    }
+  }
+}
+```
+
+#### GET /problems/:type
+
+Documentation d'un type d'erreur spécifique.
+
+Documentation for a specific error type.
+
+**Paramètres / Parameters:**
+
+- `type` : Type d'erreur / Error type (ex: `validation-error`, `conflict-error`, etc.)
+
+**Réponse / Response:**
+
+```json
+{
+  "title": "Validation Error",
+  "description": "Erreur de validation des paramètres de la requête",
+  "status": "400",
+  "detail": "Les données fournies ne respectent pas les règles de validation",
+  "fields": ["field", "value"],
+  "example": {
+    "type": "/problems/validation-error",
+    "title": "Validation Error",
+    "status": 400,
+    "detail": "Le champ \"email\" doit être une adresse email valide",
+    "field": "email",
+    "value": "invalid-email",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Codes de statut / Status Codes:**
+
+- `200` : Documentation trouvée / Documentation found
+- `404` : Type d'erreur non trouvé / Error type not found
+
 ## Codes de statut HTTP / HTTP Status Codes
 
 - `200` : Succès / Success
 - `201` : Créé avec succès / Created successfully
 - `400` : Requête invalide / Bad request
 - `401` : Non autorisé / Unauthorized
+- `403` : Accès interdit / Forbidden
 - `404` : Ressource non trouvée / Not found
 - `409` : Conflit / Conflict
 - `500` : Erreur serveur / Server error
@@ -649,6 +1018,30 @@ curl -X PUT \
   }'
 ```
 
+### Récupération du statut auto-pull / Get Auto-Pull Status
+
+```bash
+# Pour un device spécifique / For a specific device
+curl -X GET \
+  http://localhost:3333/devices/1/auto-pull/status \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+# Pour tous les devices / For all devices
+curl -X GET \
+  http://localhost:3333/devices/auto-pull/status \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+### Consultation de la documentation des erreurs / Error Documentation
+
+```bash
+# Documentation complète / Complete documentation
+curl -X GET http://localhost:3333/problems
+
+# Documentation d'un type spécifique / Specific type documentation
+curl -X GET http://localhost:3333/problems/validation-error
+```
+
 ## Notes importantes / Important Notes
 
 - Toutes les dates sont au format ISO 8601 / All dates are in ISO 8601 format
@@ -659,19 +1052,37 @@ curl -X PUT \
 - Les unités sont détectées et stockées automatiquement / Units are automatically detected and stored
 - La hiérarchie des devices supporte une structure flexible (régions, bâtiments, étages, etc.) / Device hierarchy supports flexible structure (regions, buildings, floors, etc.)
 - **Structure des capteurs / Sensor Structure :** Le champ `sensor_id` contient maintenant l'ID numérique du capteur (égal à `id`), et le champ `type` contient le nom/type du capteur (ex: "Humidity", "Temperature") / The `sensor_id` field now contains the numeric ID of the sensor (equal to `id`), and the `type` field contains the sensor name/type (e.g., "Humidity", "Temperature")
+- **Gestion des erreurs RFC 7807 / RFC 7807 Error Handling :** Toutes les erreurs suivent le standard RFC 7807 avec des informations contextuelles / All errors follow RFC 7807 standard with contextual information
+- **Auto-pull :** Les devices peuvent être configurés pour récupérer automatiquement les données à intervalles réguliers / Devices can be configured to automatically retrieve data at regular intervals
 
 ## Gestion des erreurs / Error Handling
 
-Toutes les APIs retournent des messages d'erreur explicites en cas de problème :
+Toutes les APIs retournent des messages d'erreur explicites conformes au standard RFC 7807 :
 
-All APIs return explicit error messages in case of issues:
+All APIs return explicit error messages compliant with RFC 7807 standard:
 
 ```json
 {
-  "status": "error",
-  "message": "Description de l'erreur / Error description"
+  "type": "/problems/error-type",
+  "title": "Error Title",
+  "status": 400,
+  "detail": "Detailed error description",
+  "instance": "/api/endpoint",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "resourceType": "SmartDevice",
+  "deviceId": 123
 }
 ```
+
+### Champs contextuels disponibles / Available Contextual Fields
+
+- `resourceType` : Type de ressource concernée / Type of resource involved
+- `deviceId` : ID du device concerné / ID of device involved
+- `deviceAddress` : Adresse du device / Device address
+- `field` : Champ en erreur / Field in error
+- `value` : Valeur problématique / Problematic value
+- `operation` : Opération de base de données / Database operation
+- `errorId` : ID d'erreur unique / Unique error ID
 
 ## Sécurité / Security
 
@@ -680,3 +1091,5 @@ All APIs return explicit error messages in case of issues:
 - Les tokens JWT sont utilisés pour l'authentification / JWT tokens are used for authentication
 - Les données CSV sont validées avant traitement / CSV data is validated before processing
 - Les accès aux devices sont vérifiés par utilisateur / Device access is verified per user
+- Les messages d'erreur sont sanitisés pour éviter la fuite d'informations / Error messages are sanitized to prevent information leakage
+- La validation des paramètres est stricte / Parameter validation is strict
