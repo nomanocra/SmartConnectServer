@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import axios from 'axios'
 import SmartDevice from '#models/smart_device'
-import Sensor from '#models/sensor'
-import SensorHistory from '#models/sensor_history'
+// import Sensor from '#models/sensor'
+// import SensorHistory from '#models/sensor_history'
 import CSVProcessingService from './csv_processing_service.js'
 
 interface AutoPullTask {
@@ -88,7 +88,7 @@ export default class AutoPullService {
    * Arrêter toutes les tâches d'auto-pull
    */
   public stopAllAutoPulls(): void {
-    for (const [deviceId, task] of this.tasks) {
+    for (const [, task] of this.tasks) {
       clearInterval(task.intervalId)
       task.isRunning = false
     }
