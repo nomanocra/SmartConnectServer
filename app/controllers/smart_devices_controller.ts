@@ -8,7 +8,38 @@ import AutoPullService from '../services/auto_pull_service.js'
 import CSVProcessingService from '../services/csv_processing_service.js'
 import ErrorResponseService from '../services/error_response_service.js'
 
+/**
+ * SmartDevicesController - IoT Smart Device Management
+ *
+ * This controller handles all operations related to SmartDevices:
+ * - Device retrieval and display
+ * - CSV data processing from IoT devices
+ * - Auto-pull data management
+ * - Complete device deletion with associated data
+ * - Device configuration updates
+ *
+ * All methods use RFC 7807 error handling via ErrorResponseService
+ * and require user authentication.
+ */
 export default class SmartDevicesController {
+  /**
+   * Retrieves all devices associated with the authenticated user
+   *
+   * @param ctx - HTTP context with authentication
+   * @returns JSON with list of devices and their sensors
+   *
+   * @example
+   * GET /devices
+   * Authorization: Bearer <token>
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Devices retrieved successfully",
+   *   "data": [...],
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
+   */
   async index({ auth, response }: HttpContext) {
     try {
       const user = await auth.authenticate()
@@ -34,7 +65,32 @@ export default class SmartDevicesController {
   }
 
   /**
-   * Display a single smart device with its sensors
+   * Displays a specific smart device with its sensors
+   *
+   * @param ctx - HTTP context with authentication and parameters
+   * @returns JSON with device details and sensors
+   *
+   * @example
+   * GET /devices/123
+   * Authorization: Bearer <token>
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Smart device retrieved successfully",
+   *   "data": {
+   *     "id": 123,
+   *     "deviceSerial": "192.168.1.100",
+   *     "name": "Device Name",
+   *     "isConnected": true,
+   *     "autoPull": false,
+   *     "updateStamp": 10,
+   *     "sensors": [...],
+   *     "createdAt": "2024-01-01T12:00:00.000Z",
+   *     "updatedAt": "2024-01-01T12:00:00.000Z"
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
    */
   async show({ params, response, auth }: HttpContext) {
     try {
@@ -81,6 +137,69 @@ export default class SmartDevicesController {
     }
   }
 
+  /**
+   * Processes CSV data from an IoT device and creates/updates the device
+   *
+   * This method performs the following operations:
+   * 1. Validates all required parameters (address, credentials, date, etc.)
+   * 2. Connects to the IoT device to retrieve CSV data
+   * 3. Creates a new device or updates an existing one
+   * 4. Processes CSV data to create sensors and history records
+   * 5. Configures auto-pull if requested
+   *
+   * @param ctx - HTTP context with authentication and request data
+   * @returns JSON with device information and processing statistics
+   *
+   * @example
+   * POST /device/pull-data
+   * Authorization: Bearer <token>
+   * Content-Type: application/json
+   *
+   * Request Body:
+   * {
+   *   "deviceAddress": "192.168.1.100",
+   *   "username": "admin",
+   *   "password": "password",
+   *   "deviceName": "IoT Device",
+   *   "startYear": 2024,
+   *   "startMonth": 1,
+   *   "startDay": 1,
+   *   "startHour": 0,
+   *   "startMin": 0,
+   *   "startSec": 0,
+   *   "autoPull": false,
+   *   "updateStamp": 10
+   * }
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Device successfully created and data processed",
+   *   "data": {
+   *     "deviceInfo": {
+   *       "id": 123,
+   *       "name": "IoT Device",
+   *       "deviceSerial": "192.168.1.100",
+   *       "action": "created",
+   *       "autoPull": {
+   *         "enabled": false,
+   *         "interval": 10,
+   *         "started": false
+   *       }
+   *     },
+   *     "processingStats": {
+   *       "sensorsCreated": 5,
+   *       "recordsProcessed": 1000,
+   *       "processingTime": "2.5s"
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
+   *
+   * @throws {Error} If device is already associated with user (409 Conflict)
+   * @throws {Error} If device is unreachable (503 Service Unavailable)
+   * @throws {Error} If credentials are invalid (401 Unauthorized)
+   */
   async pullData({ auth, request, response }: HttpContext) {
     const {
       deviceAddress,
@@ -353,6 +472,41 @@ export default class SmartDevicesController {
     }
   }
 
+  /**
+   * Completely deletes a device and all its associated data
+   *
+   * This method performs cascade deletion:
+   * 1. Stops active auto-pull tasks
+   * 2. Deletes all sensor history records
+   * 3. Deletes all device sensors
+   * 4. Detaches device from user
+   * 5. Deletes the device itself
+   *
+   * @param ctx - HTTP context with authentication and parameters
+   * @returns JSON confirming deletion with details
+   *
+   * @example
+   * DELETE /devices/123
+   * Authorization: Bearer <token>
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Device and all associated data deleted successfully",
+   *   "data": {
+   *     "deletedDevice": {
+   *       "id": 123,
+   *       "name": "IoT Device",
+   *       "deviceSerial": "192.168.1.100"
+   *     },
+   *     "deletedData": {
+   *       "sensorsCount": 5,
+   *       "sensorHistoriesCount": 1000
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
+   */
   async destroy({ auth, params, request, response }: HttpContext) {
     try {
       const user = await auth.authenticate()
@@ -405,7 +559,32 @@ export default class SmartDevicesController {
   }
 
   /**
-   * Obtenir le statut de l'auto-pull pour un device
+   * Gets auto-pull status for a specific device
+   *
+   * @param ctx - HTTP context with authentication and parameters
+   * @returns JSON with detailed auto-pull status
+   *
+   * @example
+   * GET /devices/123/auto-pull/status
+   * Authorization: Bearer <token>
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Auto-pull status retrieved successfully",
+   *   "data": {
+   *     "deviceId": 123,
+   *     "deviceName": "IoT Device",
+   *     "autoPull": {
+   *       "enabled": true,
+   *       "interval": 10,
+   *       "isActive": true,
+   *       "lastRun": "2024-01-01T12:00:00.000Z",
+   *       "nextRun": "2024-01-01T12:10:00.000Z"
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
    */
   async getAutoPullStatus({ auth, params, request, response }: HttpContext) {
     try {
@@ -458,7 +637,35 @@ export default class SmartDevicesController {
   }
 
   /**
-   * Obtenir le statut de tous les auto-pulls pour l'utilisateur
+   * Gets auto-pull status for all user devices
+   *
+   * @param ctx - HTTP context with authentication
+   * @returns JSON with status of all auto-pulls
+   *
+   * @example
+   * GET /devices/auto-pull/status
+   * Authorization: Bearer <token>
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "All auto-pull statuses retrieved successfully",
+   *   "data": [
+   *     {
+   *       "deviceId": 123,
+   *       "deviceName": "IoT Device 1",
+   *       "deviceSerial": "192.168.1.100",
+   *       "autoPull": {
+   *         "enabled": true,
+   *         "interval": 10,
+   *         "isActive": true,
+   *         "lastRun": "2024-01-01T12:00:00.000Z",
+   *         "nextRun": "2024-01-01T12:10:00.000Z"
+   *       }
+   *     }
+   *   ],
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
    */
   async getAllAutoPullStatus({ auth, response }: HttpContext) {
     try {
@@ -505,7 +712,37 @@ export default class SmartDevicesController {
   }
 
   /**
-   * Mettre à jour un device (nom, autoPull, updateStamp)
+   * Updates device configuration (name, auto-pull, interval)
+   *
+   * @param ctx - HTTP context with authentication, parameters and request data
+   * @returns JSON confirming update with new values
+   *
+   * @example
+   * PUT /devices/123
+   * Authorization: Bearer <token>
+   * Content-Type: application/json
+   *
+   * Request Body:
+   * {
+   *   "deviceName": "Updated Device Name",
+   *   "autoPull": true,
+   *   "updateStamp": 15
+   * }
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Device updated successfully",
+   *   "data": {
+   *     "device": {
+   *       "id": 123,
+   *       "name": "Updated Device Name",
+   *       "autoPull": true,
+   *       "updateStamp": 15
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
    */
   async update({ auth, params, request, response }: HttpContext) {
     try {
@@ -590,6 +827,148 @@ export default class SmartDevicesController {
     }
   }
 
+  /**
+   * Updates a smart device configuration by device address
+   *
+   * @param ctx - HTTP context with authentication and request data
+   * @returns JSON with updated device information
+   *
+   * @example
+   * PUT /devices/update
+   * Authorization: Bearer <token>
+   * Content-Type: application/json
+   *
+   * Request Body:
+   * {
+   *   "deviceAddress": "192.168.1.100",
+   *   "deviceName": "Updated Device Name",
+   *   "autoPull": true,
+   *   "updateStamp": 15
+   * }
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Device updated successfully",
+   *   "data": {
+   *     "device": {
+   *       "id": 123,
+   *       "deviceAddress": "192.168.1.100",
+   *       "name": "Updated Device Name",
+   *       "autoPull": true,
+   *       "updateStamp": 15
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
+   */
+  async updateByAddress({ auth, request, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+      const { deviceAddress, deviceName, autoPull, updateStamp } = request.only([
+        'deviceAddress',
+        'deviceName',
+        'autoPull',
+        'updateStamp',
+      ])
+
+      if (!deviceAddress) {
+        return ErrorResponseService.validationError(
+          { auth, request, response } as HttpContext,
+          'deviceAddress is required',
+          'deviceAddress',
+          deviceAddress
+        )
+      }
+
+      const device = await SmartDevice.query()
+        .where('deviceSerial', deviceAddress)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .first()
+
+      if (!device) {
+        return ErrorResponseService.notFoundError(
+          { auth, request, response } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
+      }
+
+      let changed = false
+
+      if (deviceName !== undefined) {
+        device.name = deviceName
+        changed = true
+      }
+      if (autoPull !== undefined) {
+        device.autoPull = autoPull
+        changed = true
+      }
+      if (updateStamp !== undefined) {
+        if (typeof updateStamp !== 'number' || updateStamp < 5 || updateStamp > 240) {
+          return ErrorResponseService.validationError(
+            { auth, request, response } as HttpContext,
+            'updateStamp must be between 5 and 240 minutes',
+            'updateStamp',
+            updateStamp
+          )
+        }
+        device.updateStamp = updateStamp
+        changed = true
+      }
+      if (!changed) {
+        return ErrorResponseService.validationError(
+          { auth, request, response } as HttpContext,
+          'No valid fields to update'
+        )
+      }
+      await device.save()
+
+      // Gestion de l'auto-pull
+      const autoPullService = AutoPullService.getInstance()
+      if (device.autoPull) {
+        await autoPullService.startAutoPull(device.id)
+      } else {
+        autoPullService.stopAutoPull(device.id)
+      }
+
+      return response.json({
+        status: 'success',
+        message: 'Device updated successfully',
+        data: {
+          device: {
+            id: device.id,
+            deviceAddress: device.deviceSerial,
+            name: device.name,
+            autoPull: device.autoPull,
+            updateStamp: device.updateStamp,
+          },
+        },
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du device:', error)
+      return ErrorResponseService.internalServerError(
+        { auth, request, response } as HttpContext,
+        'An error occurred while updating the device'
+      )
+    }
+  }
+
+  /**
+   * Cleans up all data associated with a device (private method)
+   *
+   * This method performs cascade deletion:
+   * 1. All sensor history records for the device
+   * 2. All device sensors
+   *
+   * @param deviceId - ID of the device to clean up
+   * @returns Promise<void>
+   *
+   * @private
+   */
   private async _cleanupDeviceSensors(deviceId: string) {
     const existingSensors = await Sensor.query().where('smartDeviceId', deviceId)
     if (existingSensors.length > 0) {

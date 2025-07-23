@@ -40,6 +40,10 @@ router
   .use(middleware.auth({ guards: ['api'] }))
 
 router
+  .put('/devices/update', '#controllers/smart_devices_controller.updateByAddress')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
   .put('/devices/:id', '#controllers/smart_devices_controller.update')
   .use(middleware.auth({ guards: ['api'] }))
 
