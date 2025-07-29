@@ -48,6 +48,10 @@ router
   .use(middleware.auth({ guards: ['api'] }))
 
 router
+  .delete('/devices/delete', '#controllers/smart_devices_controller.destroyByAddress')
+  .use(middleware.auth({ guards: ['api'] }))
+
+router
   .delete('/devices/:id', '#controllers/smart_devices_controller.destroy')
   .use(middleware.auth({ guards: ['api'] }))
 
