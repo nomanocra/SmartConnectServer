@@ -559,6 +559,103 @@ export default class SmartDevicesController {
   }
 
   /**
+   * Deletes a smart device and all associated data by device address
+   *
+   * @param ctx - HTTP context with authentication and request data
+   * @returns JSON with deletion confirmation
+   *
+   * @example
+   * DELETE /devices/delete
+   * Authorization: Bearer <token>
+   * Content-Type: application/json
+   *
+   * Request Body:
+   * {
+   *   "deviceAddress": "192.168.1.100"
+   * }
+   *
+   * Response:
+   * {
+   *   "status": "success",
+   *   "message": "Device and all associated data deleted successfully",
+   *   "data": {
+   *     "deletedDevice": {
+   *       "id": 123,
+   *       "deviceAddress": "192.168.1.100",
+   *       "name": "Device Name"
+   *     },
+   *     "cleanupStats": {
+   *       "sensorsDeleted": 5,
+   *       "historyRecordsDeleted": 150
+   *     }
+   *   },
+   *   "timestamp": "2024-01-01T12:00:00.000Z"
+   * }
+   */
+  async destroyByAddress({ auth, request, response }: HttpContext) {
+    try {
+      const user = await auth.authenticate()
+      const { deviceAddress } = request.only(['deviceAddress'])
+
+      if (!deviceAddress) {
+        return ErrorResponseService.validationError(
+          { auth, request, response } as HttpContext,
+          'deviceAddress is required',
+          'deviceAddress',
+          deviceAddress
+        )
+      }
+
+      const device = await SmartDevice.query()
+        .where('deviceSerial', deviceAddress)
+        .whereHas('users', (query) => {
+          query.where('users.id', user.id)
+        })
+        .first()
+
+      if (!device) {
+        return ErrorResponseService.notFoundError(
+          { auth, request, response } as HttpContext,
+          'Device not found or access denied',
+          'SmartDevice'
+        )
+      }
+
+      // Arrêter l'auto-pull si actif
+      const autoPullService = AutoPullService.getInstance()
+      autoPullService.stopAutoPull(device.id)
+
+      // Nettoyer les données associées
+      await this._cleanupDeviceSensors(device.id.toString())
+
+      // Supprimer l'association utilisateur-device
+      await db.from('user_devices').where('smart_device_id', device.id).delete()
+
+      // Supprimer le device
+      await device.delete()
+
+      return response.json({
+        status: 'success',
+        message: 'Device and all associated data deleted successfully',
+        data: {
+          deletedDevice: {
+            id: device.id,
+            deviceAddress: device.deviceSerial,
+            name: device.name,
+          },
+        },
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error('Erreur lors de la suppression du device:', error)
+      return ErrorResponseService.internalServerError(
+        { auth, request, response } as HttpContext,
+        'An error occurred while deleting the device'
+      )
+    }
+  }
+
+  /**
    * Gets auto-pull status for a specific device
    *
    * @param ctx - HTTP context with authentication and parameters
