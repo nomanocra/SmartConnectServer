@@ -7,6 +7,7 @@ import db from '@adonisjs/lucid/services/db'
 import AutoPullService from '../services/auto_pull_service.js'
 import CSVProcessingService from '../services/csv_processing_service.js'
 import ErrorResponseService from '../services/error_response_service.js'
+import DeviceHistoryService from '../services/device_history_service.js'
 
 /**
  * SmartDevicesController - IoT Smart Device Management
@@ -394,6 +395,15 @@ export default class SmartDevicesController {
 
       if (device) {
         await device.related('users').attach([user.id])
+
+        // Save device to user's history for autosuggestion
+        console.log('[SmartDevicesController] About to save device to history:', {
+          userId: user.id,
+          deviceAddress,
+          deviceName,
+        })
+        await DeviceHistoryService.saveDeviceToHistory(user.id, deviceAddress, deviceName)
+
         const processingStats = await CSVProcessingService.processCSVData(
           deviceData,
           device.id.toString()
