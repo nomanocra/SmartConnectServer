@@ -25,6 +25,11 @@ router
   .put('/users/update', '#controllers/users_controller.update')
   .use(middleware.auth({ guards: ['api'] }))
 
+// Device history routes
+router
+  .get('/users/device-history', '#controllers/user_device_history_controller.index')
+  .use(middleware.auth({ guards: ['api'] }))
+
 // Device mapping routes
 router
   .get('/users/device-mapping', '#controllers/device_mapping_controller.getDeviceMapping')
