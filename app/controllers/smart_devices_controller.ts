@@ -343,12 +343,16 @@ export default class SmartDevicesController {
       const formattedMinute = minute.toString().padStart(2, '0')
       const formattedSecond = second.toString().padStart(2, '0')
 
-      // Normaliser l'adresse pour la base de données (supprimer le protocole et le slash final)
+      // Normaliser l'adresse pour la base de données (supprimer le protocole, www et le slash final)
       let normalizedDeviceAddress = deviceAddress
       if (normalizedDeviceAddress.startsWith('http://')) {
         normalizedDeviceAddress = normalizedDeviceAddress.replace('http://', '')
       } else if (normalizedDeviceAddress.startsWith('https://')) {
         normalizedDeviceAddress = normalizedDeviceAddress.replace('https://', '')
+      }
+      // Supprimer www. au début
+      if (normalizedDeviceAddress.startsWith('www.')) {
+        normalizedDeviceAddress = normalizedDeviceAddress.replace('www.', '')
       }
       normalizedDeviceAddress = normalizedDeviceAddress.replace(/\/+$/, '')
 
