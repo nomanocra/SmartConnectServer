@@ -793,9 +793,9 @@ Authorization: Bearer <token>
 
 #### GET /sensor-history
 
-Récupération de l'historique des valeurs des capteurs.
+Récupération de l'historique des valeurs des capteurs avec filtrage par date.
 
-Retrieve sensor value history.
+Retrieve sensor value history with date filtering.
 
 **Headers requis / Required Headers:**
 
@@ -818,32 +818,37 @@ GET /sensor-history?sensor_ids[]=141&sensor_ids[]=142&start_date=2024-01-01T00:0
 **Réponse / Response:**
 
 ```json
-[
-  {
-    "sensor_id": "141",
-    "id": 141,
-    "history": [
-      {
-        "value": "45.2",
-        "timestamp": "2024-01-15T10:30:00.000Z"
-      },
-      {
-        "value": "45.5",
-        "timestamp": "2024-01-15T10:31:00.000Z"
-      }
-    ]
-  },
-  {
-    "sensor_id": "142",
-    "id": 142,
-    "history": [
-      {
-        "value": "23.5",
-        "timestamp": "2024-01-15T10:30:00.000Z"
-      }
-    ]
-  }
-]
+{
+  "status": "success",
+  "message": "Sensor histories retrieved successfully",
+  "data": [
+    {
+      "sensor_id": "141",
+      "id": 141,
+      "history": [
+        {
+          "value": "45.2",
+          "timestamp": "2024-01-15T10:30:00.000Z"
+        },
+        {
+          "value": "45.5",
+          "timestamp": "2024-01-15T10:31:00.000Z"
+        }
+      ]
+    },
+    {
+      "sensor_id": "142",
+      "id": 142,
+      "history": [
+        {
+          "value": "23.5",
+          "timestamp": "2024-01-15T10:30:00.000Z"
+        }
+      ]
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
 ```
 
 **Codes de statut / Status Codes:**
@@ -851,6 +856,99 @@ GET /sensor-history?sensor_ids[]=141&sensor_ids[]=142&start_date=2024-01-01T00:0
 - `200` : Données récupérées / Data retrieved
 - `400` : Paramètres invalides / Invalid parameters
 - `404` : Aucun capteur trouvé / No sensors found
+
+#### GET /sensor-history/latest
+
+Récupération des N dernières valeurs enregistrées pour les capteurs spécifiés.
+
+Retrieve the N latest recorded values for specified sensors.
+
+**Headers requis / Required Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Paramètres / Parameters:**
+
+- `sensor_ids` : Array des IDs des capteurs / Array of sensor IDs
+- `limit` : Nombre de valeurs à récupérer (défaut: 50, max: 500) / Number of values to retrieve (default: 50, max: 500)
+
+**Exemple de requête / Request Example:**
+
+```
+GET /sensor-history/latest?sensor_ids[]=141&sensor_ids[]=142&limit=50
+```
+
+**Réponse / Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Latest sensor values retrieved successfully",
+  "data": [
+    {
+      "sensor_id": "141",
+      "id": 141,
+      "latest_values": [
+        {
+          "value": "45.2",
+          "timestamp": "2024-01-15T10:30:00.000Z"
+        },
+        {
+          "value": "45.5",
+          "timestamp": "2024-01-15T10:29:00.000Z"
+        }
+      ],
+      "total_retrieved": 2,
+      "requested_limit": 50
+    },
+    {
+      "sensor_id": "142",
+      "id": 142,
+      "latest_values": [
+        {
+          "value": "23.5",
+          "timestamp": "2024-01-15T10:30:00.000Z"
+        }
+      ],
+      "total_retrieved": 1,
+      "requested_limit": 50
+    }
+  ],
+  "metadata": {
+    "requested_limit": 50,
+    "total_sensors": 2,
+    "timestamp": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Codes de statut / Status Codes:**
+
+- `200` : Données récupérées / Data retrieved
+- `400` : Paramètres invalides / Invalid parameters
+- `404` : Aucun capteur trouvé / No sensors found
+
+**Validation / Validation:**
+
+- `limit` : Doit être un nombre positif entre 1 et 500 / Must be a positive number between 1 and 500
+- `sensor_ids` : Array requis avec au moins un ID / Required array with at least one ID
+
+**Exemple d'erreur de validation / Validation Error Example:**
+
+```json
+{
+  "type": "/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "limit cannot exceed 500 to prevent server overload",
+  "instance": "/sensor-history/latest",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "field": "limit",
+  "value": "1000"
+}
+```
 
 ### 📚 Documentation des erreurs / Error Documentation
 

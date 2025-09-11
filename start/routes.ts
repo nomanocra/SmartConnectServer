@@ -81,6 +81,10 @@ router
   .get('/sensor-history', '#controllers/sensor_histories_controller.index')
   .use(middleware.auth({ guards: ['api'] }))
 
+router
+  .get('/sensor-history/latest', '#controllers/sensor_histories_controller.latest')
+  .use(middleware.auth({ guards: ['api'] }))
+
 // Problems documentation routes
 router.get('/problems', '#controllers/problems_controller.index')
 router.get('/problems/:type', '#controllers/problems_controller.show')
