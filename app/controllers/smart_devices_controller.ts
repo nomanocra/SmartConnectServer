@@ -368,10 +368,92 @@ export default class SmartDevicesController {
       } catch (httpsError) {
         // Essayer HTTP si HTTPS échoue
         if (cleanDeviceAddress.startsWith('https://')) {
-          const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
-          deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
+          try {
+            const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
+            deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
+          } catch (httpError) {
+            // Les deux protocoles ont échoué, gérer les erreurs spécifiques
+            const error = httpError as any
+            if (error.code === 'ENOTFOUND') {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Device address not found. Please check the device address.',
+                undefined,
+                404
+              )
+            } else if (error.code === 'ECONNREFUSED') {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Connection refused by device. The device may be offline or the address is incorrect.',
+                undefined,
+                503
+              )
+            } else if (error.code === 'ETIMEDOUT') {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Connection timeout. The device is not responding.',
+                undefined,
+                504
+              )
+            } else if (error.code === 'EHOSTUNREACH') {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Host unreachable. Please check the device address.',
+                undefined,
+                503
+              )
+            } else if (error.response?.status === 401) {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Invalid credentials. Please check username and password.',
+                undefined,
+                401
+              )
+            } else {
+              throw httpError
+            }
+          }
         } else {
-          throw httpsError
+          // Gérer les erreurs pour les adresses sans protocole
+          const error = httpsError as any
+          if (error.code === 'ENOTFOUND') {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Device address not found. Please check the device address.',
+              undefined,
+              404
+            )
+          } else if (error.code === 'ECONNREFUSED') {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Connection refused by device. The device may be offline or the address is incorrect.',
+              undefined,
+              503
+            )
+          } else if (error.code === 'ETIMEDOUT') {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Connection timeout. The device is not responding.',
+              undefined,
+              504
+            )
+          } else if (error.code === 'EHOSTUNREACH') {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Host unreachable. Please check the device address.',
+              undefined,
+              503
+            )
+          } else if (error.response?.status === 401) {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Invalid credentials. Please check username and password.',
+              undefined,
+              401
+            )
+          } else {
+            throw httpsError
+          }
         }
       }
       const deviceData = deviceResponse.data
