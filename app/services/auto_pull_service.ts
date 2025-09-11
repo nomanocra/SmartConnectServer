@@ -119,10 +119,28 @@ export default class AutoPullService {
       const startTime = DateTime.now().minus({ minutes: device.updateStamp })
       console.log(`[AutoPullService] Pulling data from ${startTime.toISO()} to now`)
 
-      const deviceUrl = `${device.deviceSerial}/query.php?username=${device.autoPullUsername}&password=${device.autoPullPassword}&logtype=DATA&format=CSV&start_year=${startTime.year}&start_month=${startTime.month}&start_day=${startTime.day}&start_hour=${startTime.hour}&start_min=${startTime.minute}&start_sec=${startTime.second}`
+      // Tester la connexion avec HTTPS d'abord, puis HTTP si ça échoue
+      let cleanDeviceAddress = device.deviceSerial
+      if (!cleanDeviceAddress.startsWith('http://') && !cleanDeviceAddress.startsWith('https://')) {
+        cleanDeviceAddress = `https://${cleanDeviceAddress}`
+      }
 
-      console.log(`[AutoPullService] Requesting data from: ${deviceUrl}`)
-      const deviceResponse = await axios.get(deviceUrl, { timeout: 30000 })
+      const buildUrl = (address: string) =>
+        `${address}/query.php?username=${device.autoPullUsername}&password=${device.autoPullPassword}&logtype=DATA&format=CSV&start_year=${startTime.year}&start_month=${startTime.month}&start_day=${startTime.day}&start_hour=${startTime.hour}&start_min=${startTime.minute}&start_sec=${startTime.second}`
+
+      let deviceResponse
+      try {
+        // Essayer HTTPS d'abord
+        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 30000 })
+      } catch (httpsError) {
+        // Essayer HTTP si HTTPS échoue
+        if (cleanDeviceAddress.startsWith('https://')) {
+          const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
+          deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
+        } else {
+          throw httpsError
+        }
+      }
       const deviceData = deviceResponse.data
 
       console.log(`[AutoPullService] Received ${deviceData.length} characters of CSV data`)

@@ -343,12 +343,40 @@ export default class SmartDevicesController {
       const formattedMinute = minute.toString().padStart(2, '0')
       const formattedSecond = second.toString().padStart(2, '0')
 
-      const deviceUrl = `${deviceAddress}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${year}&start_month=${formattedMonth}&start_day=${formattedDay}&start_hour=${formattedHour}&start_min=${formattedMinute}&start_sec=${formattedSecond}`
+      // Normaliser l'adresse pour la base de données (supprimer le protocole et le slash final)
+      let normalizedDeviceAddress = deviceAddress
+      if (normalizedDeviceAddress.startsWith('http://')) {
+        normalizedDeviceAddress = normalizedDeviceAddress.replace('http://', '')
+      } else if (normalizedDeviceAddress.startsWith('https://')) {
+        normalizedDeviceAddress = normalizedDeviceAddress.replace('https://', '')
+      }
+      normalizedDeviceAddress = normalizedDeviceAddress.replace(/\/+$/, '')
 
-      const deviceResponse = await axios.get(deviceUrl, { timeout: 30000 })
+      // Tester la connexion avec HTTPS d'abord, puis HTTP si ça échoue
+      let cleanDeviceAddress = deviceAddress
+      if (!cleanDeviceAddress.startsWith('http://') && !cleanDeviceAddress.startsWith('https://')) {
+        cleanDeviceAddress = `https://${cleanDeviceAddress}`
+      }
+
+      const buildUrl = (address: string) =>
+        `${address}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${year}&start_month=${formattedMonth}&start_day=${formattedDay}&start_hour=${formattedHour}&start_min=${formattedMinute}&start_sec=${formattedSecond}`
+
+      let deviceResponse
+      try {
+        // Essayer HTTPS d'abord
+        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 30000 })
+      } catch (httpsError) {
+        // Essayer HTTP si HTTPS échoue
+        if (cleanDeviceAddress.startsWith('https://')) {
+          const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
+          deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
+        } else {
+          throw httpsError
+        }
+      }
       const deviceData = deviceResponse.data
 
-      let device = await SmartDevice.query().where('deviceSerial', deviceAddress).first()
+      let device = await SmartDevice.query().where('deviceSerial', normalizedDeviceAddress).first()
       const isAlreadyAssociated =
         device &&
         (await db
@@ -375,7 +403,7 @@ export default class SmartDevicesController {
       const isNewDevice = !device
       if (isNewDevice) {
         device = await SmartDevice.create({
-          deviceSerial: deviceAddress,
+          deviceSerial: normalizedDeviceAddress,
           name: deviceName,
           isConnected: true,
           autoPull: autoPull,
@@ -397,12 +425,7 @@ export default class SmartDevicesController {
         await device.related('users').attach([user.id])
 
         // Save device to user's history for autosuggestion
-        console.log('[SmartDevicesController] About to save device to history:', {
-          userId: user.id,
-          deviceAddress,
-          deviceName,
-        })
-        await DeviceHistoryService.saveDeviceToHistory(user.id, deviceAddress, deviceName)
+        await DeviceHistoryService.saveDeviceToHistory(user.id, normalizedDeviceAddress, deviceName)
 
         const processingStats = await CSVProcessingService.processCSVData(
           deviceData,
