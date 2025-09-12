@@ -108,7 +108,17 @@ export default class CSVProcessingService {
         }
       }
 
-      await SensorHistory.create({ sensorId: sensor.id, value: value, recordedAt: recordedAt })
+      // Vérifier si l'enregistrement existe déjà pour éviter les doublons
+      const existingRecord = await SensorHistory.query()
+        .where('sensorId', sensor.id)
+        .where('recordedAt', recordedAt.toSQL())
+        .first()
+
+      if (!existingRecord) {
+        await SensorHistory.create({ sensorId: sensor.id, value: value, recordedAt: recordedAt })
+      } else {
+        console.log(`[CSVProcessingService] Record already exists for sensor ${sensor.id} at ${recordedAt.toSQL()}, skipping insertion`)
+      }
     }
 
     // Mettre à jour les capteurs avec leurs valeurs les plus récentes

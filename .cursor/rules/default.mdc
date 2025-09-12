@@ -3,8 +3,11 @@ description:
 globs:
 alwaysApply: true
 ---
+
 # Project: SmartConnectServer
+
 ## Overview / Vue d'ensemble
+
 This project serves as the backend for SmartConnectApp, an IoT data management dashboard application. The server handles device management, sensor data collection, and hierarchical organization of IoT devices.
 
 Ce projet sert de backend pour SmartConnectApp, une application de tableau de bord de gestion IoT. Le serveur gère les appareils, la collecte de données des capteurs et l'organisation hiérarchique des appareils IoT.
@@ -18,12 +21,15 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
 - **Language** : TypeScript
 
 ## Core Features / Fonctionnalités principales
+
 1. **Authentication / Authentification**
+
    - Uses Access Tokens Guard
    - Handles user registration, login, and token management
    - Implements secure authentication flows with JWT tokens
 
 2. **SmartDevice Management / Gestion des SmartDevice**
+
    - Each SmartDevice represents an IoT device hub
    - Contains multiple sensors
    - Manages device configuration and status
@@ -33,6 +39,7 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
    - **NEW**: Enhanced conflict error responses with device ID
 
 3. **Sensor Data / Données des capteurs**
+
    - Historical data storage and retrieval
    - Time-series data management
    - Data validation and processing
@@ -41,12 +48,13 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
    - **NEW**: Sensor history tracking with timestamps
 
 4. **Hierarchical Structure / Structure hiérarchique**
+
    - Flexible location-based organization
    - Supports multiple organizational levels. This organization is flexible, and here is just an example:
-     * Regions/Cities (e.g., Paris, Toulouse)
-     * Buildings/Areas (e.g., Hangars)
-     * Device Groups (Floor, Entry, Room1)
-     * Individual SmartDevices
+     - Regions/Cities (e.g., Paris, Toulouse)
+     - Buildings/Areas (e.g., Hangars)
+     - Device Groups (Floor, Entry, Room1)
+     - Individual SmartDevices
 
 5. **Error Handling System / Système de gestion d'erreurs**
    - **NEW**: RFC 7807 Problem Details for HTTP APIs compliance
@@ -56,19 +64,22 @@ Ce projet sert de backend pour SmartConnectApp, une application de tableau de bo
    - **NEW**: Bilingual error messages (French/English)
 
 ## Database Structure / Structure de la base de données
+
 - Uses PostgreSQL with Lucid ORM
 - Implements relationships between:
-  * Users
-  * SmartDevices
-  * Sensors
-  * Sensor Data Records (SensorHistory)
+  - Users
+  - SmartDevices
+  - Sensors
+  - Sensor Data Records (SensorHistory)
 - **Key Relationships**:
-  * Users ↔ SmartDevices (Many-to-Many via user_devices table)
-  * SmartDevices → Sensors (One-to-Many)
-  * Sensors → SensorHistory (One-to-Many)
+  - Users ↔ SmartDevices (Many-to-Many via user_devices table)
+  - SmartDevices → Sensors (One-to-Many)
+  - Sensors → SensorHistory (One-to-Many)
 
 ## API Endpoints / Points d'accès API
+
 The server provides RESTful APIs for:
+
 1. User authentication and management
 2. SmartDevice CRUD operations
 3. Sensor data retrieval and storage
@@ -78,16 +89,20 @@ The server provides RESTful APIs for:
 7. **NEW**: Error documentation and reference
 
 ### Key Endpoints / Endpoints principaux
+
 #### Authentication / Authentification
+
 - `POST /auth/login` - User login
 - `POST /auth/logout` - User logout (authenticated)
 - `GET /auth/me` - Get current user info (authenticated)
 
 #### Users / Utilisateurs
+
 - `POST /users` - User registration
 - `PUT /users/update` - Update user profile (authenticated)
 
 #### Device Management / Gestion des devices
+
 - `GET /devices` - List user's devices (authenticated)
 - `GET /devices/:id` - Get specific device details (authenticated)
 - `POST /device/pull-data` - Process CSV data from IoT devices (authenticated)
@@ -95,26 +110,32 @@ The server provides RESTful APIs for:
 - `DELETE /devices/:id` - Delete device and all associated data (authenticated)
 
 #### Auto-Pull Management / Gestion de l'auto-pull
+
 - `GET /devices/:id/auto-pull/status` - Get auto-pull status for specific device (authenticated)
 - `GET /devices/auto-pull/status` - Get auto-pull status for all user devices (authenticated)
 
 #### Sensor Data / Données des capteurs
+
 - `GET /sensor-history` - Retrieve sensor historical data (authenticated)
 
 #### Device Mapping / Mapping des devices
+
 - `GET /users/device-mapping` - Get hierarchical device structure (authenticated)
 - `PUT /users/device-mapping` - Update device mapping (authenticated)
 
 #### Error Documentation / Documentation des erreurs
+
 - `GET /problems` - Complete error documentation
 - `GET /problems/:type` - Specific error type documentation
 
 #### Root
+
 - `GET /` - Root endpoint
 
 ## Development Guidelines / Directives de développement
 
 ### Code Standards / Standards de code
+
 - Follow AdonisJS best practices and conventions
 - Use Lucid models for database operations
 - Implement proper error handling and validation
@@ -127,6 +148,7 @@ The server provides RESTful APIs for:
 - **NEW**: Follow RFC 7807 Problem Details specification
 
 ### File Organization / Organisation des fichiers
+
 - Controllers in `app/controllers/`
 - Models in `app/models/`
 - Middleware in `app/middleware/`
@@ -136,6 +158,7 @@ The server provides RESTful APIs for:
 - Routes in `start/routes.ts`
 
 ### Naming Conventions / Conventions de nommage
+
 - Controllers: `snake_case_controller.ts`
 - Models: `PascalCase.ts`
 - Services: `PascalCase_service.ts`
@@ -144,6 +167,7 @@ The server provides RESTful APIs for:
 - API endpoints: `kebab-case`
 
 ### Error Handling / Gestion d'erreurs
+
 - **NEW**: Always use ErrorResponseService for error responses
 - **NEW**: Follow RFC 7807 Problem Details specification
 - Always use try-catch blocks in controllers
@@ -155,6 +179,7 @@ The server provides RESTful APIs for:
 - **NEW**: Use bilingual error messages (French/English)
 
 ### Security Best Practices / Bonnes pratiques de sécurité
+
 - Validate all input data
 - Use parameterized queries (Lucid handles this)
 - Implement proper authentication checks
@@ -166,6 +191,7 @@ The server provides RESTful APIs for:
 ## Recent Features / Fonctionnalités récentes
 
 ### RFC 7807 Error Handling System / Système de gestion d'erreurs RFC 7807
+
 - **ErrorResponseService**: Centralized error handling service
 - **Problem Details**: RFC 7807 compliant error responses
 - **Error Documentation**: Self-documenting API with /problems endpoints
@@ -174,6 +200,7 @@ The server provides RESTful APIs for:
 - **Standardization**: Consistent error format across all endpoints
 
 ### CSV Data Processing / Traitement des données CSV
+
 - Automatic sensor creation from Device_Name
 - Sensor history tracking with timestamps
 - Unit detection and storage
@@ -181,6 +208,7 @@ The server provides RESTful APIs for:
 - Processing statistics reporting
 
 ### Device Management / Gestion des devices
+
 - Complete device deletion with cascade
 - Sensor and history cleanup
 - User association management
@@ -188,6 +216,7 @@ The server provides RESTful APIs for:
 - **NEW**: Enhanced conflict detection with device ID in error responses
 
 ## External Resources / Ressources externes
+
 - AdonisJS Documentation: https://docs.adonisjs.com/guides/preface/introduction
 - Lucid Documentation: https://lucid.adonisjs.com/docs/introduction
 - Frontend Repository: https://github.com/nomanocra/SmartconnectApp
@@ -195,6 +224,7 @@ The server provides RESTful APIs for:
 - **NEW**: RFC 7807 Problem Details: https://tools.ietf.org/html/rfc7807
 
 ## Security Considerations / Considérations de sécurité
+
 - Implement proper input validation
 - Use secure session management
 - Follow authentication best practices
@@ -209,6 +239,7 @@ The server provides RESTful APIs for:
 ## AI Collaboration Guidelines / Directives pour la collaboration IA
 
 ### When working with this codebase / Lors du travail sur ce codebase
+
 1. **Always check existing patterns** - Look at similar implementations first
 2. **Use TypeScript types** - Leverage the existing model types
 3. **Follow AdonisJS conventions** - Stick to framework patterns
@@ -219,8 +250,10 @@ The server provides RESTful APIs for:
 8. **NEW**: Use ErrorResponseService for all error handling
 9. **NEW**: Follow RFC 7807 Problem Details specification
 10. **NEW**: Include contextual information in error responses
+11. After every commit, increment the App version and timestamp in package.json
 
 ### Code Generation Preferences / Préférences de génération de code
+
 - Prefer explicit error handling over implicit
 - Use descriptive variable names
 - Include JSDoc comments for complex functions
@@ -231,6 +264,7 @@ The server provides RESTful APIs for:
 - **NEW**: Use bilingual error messages
 
 ### Error Handling Patterns / Modèles de gestion d'erreurs
+
 - **Validation Errors**: Use `ErrorResponseService.validationError()`
 - **Authentication Errors**: Use `ErrorResponseService.authenticationError()`
 - **Authorization Errors**: Use `ErrorResponseService.authorizationError()`
@@ -241,6 +275,7 @@ The server provides RESTful APIs for:
 - **Database Errors**: Use `ErrorResponseService.databaseError()`
 
 ### Example Error Response / Exemple de réponse d'erreur
+
 ```typescript
 // For device conflict with device ID
 return ErrorResponseService.createProblemResponse(
@@ -252,12 +287,13 @@ return ErrorResponseService.createProblemResponse(
   undefined,
   {
     resourceType: 'SmartDevice',
-    deviceId: device.id
+    deviceId: device.id,
   }
 )
 ```
 
 **Format de réponse RFC 7807 :**
+
 ```json
 {
   "type": "/problems/conflict-error",
