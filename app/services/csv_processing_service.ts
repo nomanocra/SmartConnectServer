@@ -7,9 +7,14 @@ export default class CSVProcessingService {
    * Traiter les données CSV et mettre à jour la base de données
    * @param csvData - Les données CSV brutes
    * @param smartDeviceId - L'ID du smart device
+   * @param isInitialPull - Si true, récupère toutes les données (pull initial). Si false, filtre par lastUpdate (auto-pull)
    * @returns Statistiques de traitement
    */
-  public static async processCSVData(csvData: string, smartDeviceId: string) {
+  public static async processCSVData(
+    csvData: string,
+    smartDeviceId: string,
+    isInitialPull: boolean = false
+  ) {
     const lines = csvData.trim().split('\n')
     const headers = lines[0].split(',')
     let sensorsCreated = 0
@@ -72,12 +77,6 @@ export default class CSVProcessingService {
         recordedAt = DateTime.now()
       }
 
-      // Stocker la valeur la plus récente pour ce capteur
-      const existingData = sensorLatestData.get(deviceName)
-      if (!existingData || recordedAt > existingData.timestamp) {
-        sensorLatestData.set(deviceName, { value, timestamp: recordedAt })
-      }
-
       let sensor = await Sensor.query()
         .where('type', deviceName)
         .where('smartDeviceId', smartDeviceId)
@@ -108,18 +107,17 @@ export default class CSVProcessingService {
         }
       }
 
-      // Vérifier si l'enregistrement existe déjà pour éviter les doublons
-      const existingRecord = await SensorHistory.query()
-        .where('sensorId', sensor.id)
-        .where('recordedAt', recordedAt.toSQL()!)
-        .first()
+      // Pour l'auto-pull, vérifier si l'enregistrement est plus récent que la dernière mise à jour
+      if (!isInitialPull && sensor.lastUpdate && recordedAt <= sensor.lastUpdate) {
+        continue // Ignorer cette ligne, elle est déjà en base
+      }
 
-      if (!existingRecord) {
-        await SensorHistory.create({ sensorId: sensor.id, value: value, recordedAt: recordedAt })
-      } else {
-        console.log(
-          `[CSVProcessingService] Record already exists for sensor ${sensor.id} at ${recordedAt.toSQL()}, skipping insertion`
-        )
+      await SensorHistory.create({ sensorId: sensor.id, value: value, recordedAt: recordedAt })
+
+      // Stocker la valeur la plus récente pour ce capteur
+      const existingData = sensorLatestData.get(deviceName)
+      if (!existingData || recordedAt > existingData.timestamp) {
+        sensorLatestData.set(deviceName, { value, timestamp: recordedAt })
       }
     }
 

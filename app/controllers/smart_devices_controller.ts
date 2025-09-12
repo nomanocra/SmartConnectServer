@@ -356,28 +356,32 @@ export default class SmartDevicesController {
       }
       normalizedDeviceAddress = normalizedDeviceAddress.replace(/\/+$/, '')
 
-      // Tester la connexion avec HTTPS d'abord, puis HTTP si ça échoue
+      // Tester la connexion selon le protocole spécifié par l'utilisateur
       let cleanDeviceAddress = deviceAddress
       if (!cleanDeviceAddress.startsWith('http://') && !cleanDeviceAddress.startsWith('https://')) {
         cleanDeviceAddress = `https://${cleanDeviceAddress}`
       }
 
-      const buildUrl = (address: string) =>
-        `${address}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${year}&start_month=${formattedMonth}&start_day=${formattedDay}&start_hour=${formattedHour}&start_min=${formattedMinute}&start_sec=${formattedSecond}`
+      const buildUrl = (address: string) => {
+        const cleanAddress = address.endsWith('/') ? address.slice(0, -1) : address
+        return `${cleanAddress}/query.php?username=${username}&password=${password}&logtype=DATA&format=CSV&start_year=${year}&start_month=${formattedMonth}&start_day=${formattedDay}&start_hour=${formattedHour}&start_min=${formattedMinute}&start_sec=${formattedSecond}`
+      }
 
       let deviceResponse
       try {
-        // Essayer HTTPS d'abord
-        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 30000 })
-      } catch (httpsError) {
-        // Essayer HTTP si HTTPS échoue
-        if (cleanDeviceAddress.startsWith('https://')) {
+        // Utiliser le protocole spécifié par l'utilisateur
+        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 10000 })
+      } catch (firstError) {
+        // Essayer l'autre protocole seulement si aucun protocole n'était spécifié
+        if (!deviceAddress.startsWith('http://') && !deviceAddress.startsWith('https://')) {
           try {
-            const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
-            deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
-          } catch (httpError) {
+            const alternativeAddress = cleanDeviceAddress.startsWith('https://')
+              ? cleanDeviceAddress.replace('https://', 'http://')
+              : cleanDeviceAddress.replace('http://', 'https://')
+            deviceResponse = await axios.get(buildUrl(alternativeAddress), { timeout: 10000 })
+          } catch (secondError) {
             // Les deux protocoles ont échoué, gérer les erreurs spécifiques
-            const error = httpError as any
+            const error = secondError as any
             if (error.code === 'ENOTFOUND') {
               return ErrorResponseService.deviceError(
                 { auth, request, response } as HttpContext,
@@ -414,12 +418,12 @@ export default class SmartDevicesController {
                 401
               )
             } else {
-              throw httpError
+              throw secondError
             }
           }
         } else {
-          // Gérer les erreurs pour les adresses sans protocole
-          const error = httpsError as any
+          // Gérer les erreurs pour le protocole spécifié par l'utilisateur
+          const error = firstError as any
           if (error.code === 'ENOTFOUND') {
             return ErrorResponseService.deviceError(
               { auth, request, response } as HttpContext,
@@ -456,11 +460,21 @@ export default class SmartDevicesController {
               401
             )
           } else {
-            throw httpsError
+            throw firstError
           }
         }
       }
+
+      // Vérifier si la réponse contient une erreur d'authentification
       const deviceData = deviceResponse.data
+      if (typeof deviceData === 'string' && deviceData.includes('Authentication Error')) {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Invalid credentials. Please check username and password.',
+          undefined,
+          401
+        )
+      }
 
       let device = await SmartDevice.query().where('deviceSerial', normalizedDeviceAddress).first()
       const isAlreadyAssociated =
@@ -515,7 +529,8 @@ export default class SmartDevicesController {
 
         const processingStats = await CSVProcessingService.processCSVData(
           deviceData,
-          device.id.toString()
+          device.id.toString(),
+          true // isInitialPull = true pour le pull initial
         )
 
         // Gestion de l'auto-pull

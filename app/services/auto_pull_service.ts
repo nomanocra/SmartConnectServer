@@ -125,20 +125,31 @@ export default class AutoPullService {
         cleanDeviceAddress = `https://${cleanDeviceAddress}`
       }
 
-      const buildUrl = (address: string) =>
-        `${address}/query.php?username=${device.autoPullUsername}&password=${device.autoPullPassword}&logtype=DATA&format=CSV&start_year=${startTime.year}&start_month=${startTime.month}&start_day=${startTime.day}&start_hour=${startTime.hour}&start_min=${startTime.minute}&start_sec=${startTime.second}`
+      const buildUrl = (address: string) => {
+        const cleanAddress = address.endsWith('/') ? address.slice(0, -1) : address
+        return `${cleanAddress}/query.php?username=${device.autoPullUsername}&password=${device.autoPullPassword}&logtype=DATA&format=CSV&start_year=${startTime.year}&start_month=${startTime.month}&start_day=${startTime.day}&start_hour=${startTime.hour}&start_min=${startTime.minute}&start_sec=${startTime.second}&limit=100`
+      }
 
       let deviceResponse
       try {
-        // Essayer HTTPS d'abord
-        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 30000 })
-      } catch (httpsError) {
-        // Essayer HTTP si HTTPS échoue
-        if (cleanDeviceAddress.startsWith('https://')) {
-          const httpAddress = cleanDeviceAddress.replace('https://', 'http://')
-          deviceResponse = await axios.get(buildUrl(httpAddress), { timeout: 30000 })
+        // Utiliser le protocole spécifié par l'utilisateur
+        deviceResponse = await axios.get(buildUrl(cleanDeviceAddress), { timeout: 10000 })
+      } catch (firstError) {
+        // Essayer l'autre protocole seulement si aucun protocole n'était spécifié
+        if (
+          !device.deviceSerial.startsWith('http://') &&
+          !device.deviceSerial.startsWith('https://')
+        ) {
+          try {
+            const alternativeAddress = cleanDeviceAddress.startsWith('https://')
+              ? cleanDeviceAddress.replace('https://', 'http://')
+              : cleanDeviceAddress.replace('http://', 'https://')
+            deviceResponse = await axios.get(buildUrl(alternativeAddress), { timeout: 10000 })
+          } catch (secondError) {
+            throw secondError
+          }
         } else {
-          throw httpsError
+          throw firstError
         }
       }
       const deviceData = deviceResponse.data
@@ -149,7 +160,8 @@ export default class AutoPullService {
       // Traiter les données CSV
       const processingStats = await CSVProcessingService.processCSVData(
         deviceData,
-        deviceId.toString()
+        deviceId.toString(),
+        false // isInitialPull = false pour l'auto-pull
       )
 
       console.log(`[AutoPullService] CSV processing completed:`, processingStats)
