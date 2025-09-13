@@ -250,7 +250,7 @@ The server provides RESTful APIs for:
 8. **NEW**: Use ErrorResponseService for all error handling
 9. **NEW**: Follow RFC 7807 Problem Details specification
 10. **NEW**: Include contextual information in error responses
-11. After every commit, increment the App version and timestamp in package.json
+11. After every commit, increment the App version and timestamp in package.json (after a commit not a modification!)
 
 ### Code Generation Preferences / Préférences de génération de code
 
