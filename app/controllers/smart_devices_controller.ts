@@ -24,6 +24,34 @@ import DeviceHistoryService from '../services/device_history_service.js'
  */
 export default class SmartDevicesController {
   /**
+   * Normalizes device addresses by removing protocols, www prefix, and trailing slashes
+   *
+   * @param address - The device address to normalize
+   * @returns The normalized address
+   *
+   * @example
+   * normalizeDeviceAddress('http://www.90.21.54.142/') // returns '90.21.54.142'
+   * normalizeDeviceAddress('https://192.168.1.100') // returns '192.168.1.100'
+   * normalizeDeviceAddress('www.example.com') // returns 'example.com'
+   */
+  private normalizeDeviceAddress(address: string): string {
+    let normalized = address
+    // Supprimer le protocole
+    if (normalized.startsWith('http://')) {
+      normalized = normalized.replace('http://', '')
+    } else if (normalized.startsWith('https://')) {
+      normalized = normalized.replace('https://', '')
+    }
+    // Supprimer www. au début
+    if (normalized.startsWith('www.')) {
+      normalized = normalized.replace('www.', '')
+    }
+    // Supprimer les slashes finaux
+    normalized = normalized.replace(/\/+$/, '')
+    return normalized
+  }
+
+  /**
    * Retrieves all devices associated with the authenticated user
    *
    * @param ctx - HTTP context with authentication
@@ -343,21 +371,48 @@ export default class SmartDevicesController {
       const formattedMinute = minute.toString().padStart(2, '0')
       const formattedSecond = second.toString().padStart(2, '0')
 
-      // Normaliser l'adresse pour la base de données (supprimer le protocole, www et le slash final)
-      let normalizedDeviceAddress = deviceAddress
-      if (normalizedDeviceAddress.startsWith('http://')) {
-        normalizedDeviceAddress = normalizedDeviceAddress.replace('http://', '')
-      } else if (normalizedDeviceAddress.startsWith('https://')) {
-        normalizedDeviceAddress = normalizedDeviceAddress.replace('https://', '')
+      // Normaliser l'adresse pour la base de données
+      const normalizedDeviceAddress = this.normalizeDeviceAddress(deviceAddress)
+
+      // VÉRIFIER D'ABORD SI LE DEVICE EXISTE DÉJÀ (pour éviter les requêtes HTTP inutiles)
+      // Rechercher un device existant en normalisant les adresses en base
+      const allDevices = await SmartDevice.query()
+      let device = null
+
+      for (const existingDevice of allDevices) {
+        const normalizedExistingAddress = this.normalizeDeviceAddress(existingDevice.deviceSerial)
+        if (normalizedExistingAddress === normalizedDeviceAddress) {
+          device = existingDevice
+          break
+        }
       }
-      // Supprimer www. au début
-      if (normalizedDeviceAddress.startsWith('www.')) {
-        normalizedDeviceAddress = normalizedDeviceAddress.replace('www.', '')
+
+      const isAlreadyAssociated =
+        device &&
+        (await db
+          .from('user_devices')
+          .where('smart_device_id', device.id)
+          .where('user_id', user.id)
+          .first())
+
+      if (isAlreadyAssociated && device) {
+        return ErrorResponseService.createProblemResponse(
+          { auth, request, response } as HttpContext,
+          409,
+          'Device Conflict',
+          'This device is already associated with your account',
+          '/problems/conflict-error',
+          undefined,
+          {
+            resourceType: 'SmartDevice',
+            deviceId: device.id,
+          }
+        )
       }
-      normalizedDeviceAddress = normalizedDeviceAddress.replace(/\/+$/, '')
 
       // Tester la connexion selon le protocole spécifié par l'utilisateur
-      let cleanDeviceAddress = deviceAddress
+      // Utiliser l'adresse normalisée pour construire l'URL propre
+      let cleanDeviceAddress = normalizedDeviceAddress
       if (!cleanDeviceAddress.startsWith('http://') && !cleanDeviceAddress.startsWith('https://')) {
         cleanDeviceAddress = `https://${cleanDeviceAddress}`
       }
@@ -410,6 +465,13 @@ export default class SmartDevicesController {
                 undefined,
                 503
               )
+            } else if (error.code === 'ECONNABORTED') {
+              return ErrorResponseService.deviceError(
+                { auth, request, response } as HttpContext,
+                'Connection timeout. The device is not responding within the expected time.',
+                undefined,
+                504
+              )
             } else if (error.response?.status === 401) {
               return ErrorResponseService.deviceError(
                 { auth, request, response } as HttpContext,
@@ -452,6 +514,13 @@ export default class SmartDevicesController {
               undefined,
               503
             )
+          } else if (error.code === 'ECONNABORTED') {
+            return ErrorResponseService.deviceError(
+              { auth, request, response } as HttpContext,
+              'Connection timeout. The device is not responding within the expected time.',
+              undefined,
+              504
+            )
           } else if (error.response?.status === 401) {
             return ErrorResponseService.deviceError(
               { auth, request, response } as HttpContext,
@@ -476,28 +545,32 @@ export default class SmartDevicesController {
         )
       }
 
-      let device = await SmartDevice.query().where('deviceSerial', normalizedDeviceAddress).first()
-      const isAlreadyAssociated =
-        device &&
-        (await db
-          .from('user_devices')
-          .where('smart_device_id', device.id)
-          .where('user_id', user.id)
-          .first())
+      // Vérifier si c'est bien un smartBoitier valide (doit retourner du CSV)
+      if (typeof deviceData === 'string') {
+        // Un smartBoitier valide doit retourner du CSV, pas du HTML
+        if (
+          deviceData.includes('<html') ||
+          deviceData.includes('<!DOCTYPE') ||
+          deviceData.includes('<head>')
+        ) {
+          return ErrorResponseService.deviceError(
+            { auth, request, response } as HttpContext,
+            'Device not recognized as a smartBoitier.',
+            deviceAddress,
+            400
+          )
+        }
 
-      if (isAlreadyAssociated && device) {
-        return ErrorResponseService.createProblemResponse(
-          { auth, request, response } as HttpContext,
-          409,
-          'Device Conflict',
-          'This device is already associated with your account',
-          '/problems/conflict-error',
-          undefined,
-          {
-            resourceType: 'SmartDevice',
-            deviceId: device.id,
-          }
-        )
+        // Vérifier si la réponse contient des données CSV valides
+        const csvLines = deviceData.split('\n').filter((line) => line.trim().length > 0)
+        if (csvLines.length === 0 || !csvLines[0].includes(',')) {
+          return ErrorResponseService.deviceError(
+            { auth, request, response } as HttpContext,
+            'Device not recognized as a smartBoitier.',
+            deviceAddress,
+            400
+          )
+        }
       }
 
       const isNewDevice = !device
@@ -579,6 +652,51 @@ export default class SmartDevicesController {
         )
       }
 
+      if (error.code === 'ECONNABORTED') {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Connection timeout. The device is not responding within the expected time.',
+          deviceAddress,
+          504 // Gateway Timeout
+        )
+      }
+
+      if (error.code === 'ENOTFOUND') {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Device address not found. Please check the device address.',
+          deviceAddress,
+          404
+        )
+      }
+
+      if (error.code === 'ECONNREFUSED') {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Connection refused by device. The device may be offline or the address is incorrect.',
+          deviceAddress,
+          503
+        )
+      }
+
+      if (error.code === 'ETIMEDOUT') {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Connection timeout. The device is not responding.',
+          deviceAddress,
+          504
+        )
+      }
+
+      if (error.code === 'EHOSTUNREACH') {
+        return ErrorResponseService.deviceError(
+          { auth, request, response } as HttpContext,
+          'Host unreachable. Please check the device address.',
+          deviceAddress,
+          503
+        )
+      }
+
       if (error.response?.status === 401) {
         return ErrorResponseService.deviceError(
           { auth, request, response } as HttpContext,
@@ -588,13 +706,13 @@ export default class SmartDevicesController {
         )
       }
 
-      // Gestion des autres erreurs HTTP courantes
+      // Gestion des autres erreurs HTTP courantes (404, 500, etc.)
       if (error.response?.status) {
         return ErrorResponseService.deviceError(
           { auth, request, response } as HttpContext,
-          `Device communication error (HTTP ${error.response.status}). Please check device configuration.`,
+          'Device not recognized as a smartBoitier.',
           deviceAddress,
-          error.response.status
+          400
         )
       }
 
@@ -740,12 +858,22 @@ export default class SmartDevicesController {
         )
       }
 
-      const device = await SmartDevice.query()
-        .where('deviceSerial', deviceAddress)
-        .whereHas('users', (query) => {
-          query.where('users.id', user.id)
-        })
-        .first()
+      // Normaliser l'adresse pour la recherche
+      const normalizedDeviceAddress = this.normalizeDeviceAddress(deviceAddress)
+
+      // Rechercher un device existant en normalisant les adresses en base
+      const allDevices = await SmartDevice.query().whereHas('users', (query) => {
+        query.where('users.id', user.id)
+      })
+
+      let device = null
+      for (const existingDevice of allDevices) {
+        const normalizedExistingAddress = this.normalizeDeviceAddress(existingDevice.deviceSerial)
+        if (normalizedExistingAddress === normalizedDeviceAddress) {
+          device = existingDevice
+          break
+        }
+      }
 
       if (!device) {
         return ErrorResponseService.notFoundError(
@@ -1112,12 +1240,22 @@ export default class SmartDevicesController {
         )
       }
 
-      const device = await SmartDevice.query()
-        .where('deviceSerial', deviceAddress)
-        .whereHas('users', (query) => {
-          query.where('users.id', user.id)
-        })
-        .first()
+      // Normaliser l'adresse pour la recherche
+      const normalizedDeviceAddress = this.normalizeDeviceAddress(deviceAddress)
+
+      // Rechercher un device existant en normalisant les adresses en base
+      const allDevices = await SmartDevice.query().whereHas('users', (query) => {
+        query.where('users.id', user.id)
+      })
+
+      let device = null
+      for (const existingDevice of allDevices) {
+        const normalizedExistingAddress = this.normalizeDeviceAddress(existingDevice.deviceSerial)
+        if (normalizedExistingAddress === normalizedDeviceAddress) {
+          device = existingDevice
+          break
+        }
+      }
 
       if (!device) {
         return ErrorResponseService.notFoundError(
