@@ -11,13 +11,24 @@
   },
   "scripts": {
     "start": "node bin/server.js",
+    "start:prod": "NODE_ENV=production node bin/server.js",
     "build": "node ace build",
-    "dev": "node ace serve",
-    "dev:hmr": "node ace serve --hmr",
+    "build:prod": "NODE_ENV=production node ace build",
+    "dev": "NODE_ENV=development node ace serve",
+    "dev:hmr": "NODE_ENV=development node ace serve --hmr",
+    "dev:watch": "NODE_ENV=development node ace serve --watch",
     "test": "node ace test",
+    "test:dev": "NODE_ENV=development node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate": "node ace migration:run",
+    "migrate:dev": "NODE_ENV=development node ace migration:run",
+    "migrate:prod": "NODE_ENV=production node ace migration:run",
+    "seed": "node ace db:seed",
+    "seed:dev": "NODE_ENV=development node ace db:seed",
+    "fresh": "node ace migration:fresh --seed",
+    "fresh:dev": "NODE_ENV=development node ace migration:fresh --seed"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
